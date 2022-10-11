@@ -1,5 +1,5 @@
 #include "model.hpp"
-
+#include "dataset.hpp"
 Model::Model(void) {}
 
 Model::Model(std::shared_ptr<Bitmask> capture_set) {

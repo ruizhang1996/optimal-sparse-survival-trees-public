@@ -172,7 +172,7 @@ void Dataset::target_value(Bitmask capture_set, std::string & prediction_value) 
         sum += targets[i];
         wsum += weights[i];
     }
-    prediction_value = std::to_string(sum/wsum);
+    prediction_value = std::to_string(sum/wsum * this -> _normalizer);
 }
 double Dataset::ssq_loss(Bitmask capture_set) const {
     double cumsum1 = 0;
@@ -302,6 +302,8 @@ void Dataset::normalize_data() {
     for (int i = 0; i < size(); i++) {
         targets[i] = targets[i] / loss_normalizer;
     }
+    this -> _normalizer = loss_normalizer;
+
     std::cout << "loss_normalizer: " << loss_normalizer << std::endl;
 }
 

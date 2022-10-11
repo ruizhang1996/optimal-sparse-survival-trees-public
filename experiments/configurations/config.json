@@ -6,15 +6,15 @@
     "feature_exchange": false,
     "continuous_feature_exchange": false,
     "rule_list": false,
-    "k_cluster": true,
+    "k_cluster": false,
   
     "diagnostics": true,
     "verbose": true,
   
-    "regularization": 0.007,
+    "regularization": 0.01,
     "uncertainty_tolerance": 0.0,
     "upperbound": 0.0,
-    "depth_budget": 6,
+    "depth_budget": 7,
 
 
     "model_limit": 1,
