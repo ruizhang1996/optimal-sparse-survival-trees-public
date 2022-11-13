@@ -503,7 +503,7 @@ unsigned int Encoder::features(void) const { return this -> number_of_columns - 
 unsigned int Encoder::targets(void) const { return 1; }
 
 unsigned int Encoder::binary_features(void) const {
-    return this -> number_of_binary_columns - this -> number_of_binary_targets;
+    return this -> number_of_binary_columns - this -> number_of_binary_targets - 1;
 }
 
 unsigned int Encoder::binary_targets(void) const {
@@ -511,3 +511,5 @@ unsigned int Encoder::binary_targets(void) const {
 }
 
 std::vector<double> Encoder::get_weights() {return this -> weights;}
+
+std::set<std::string> Encoder::get_target_values(){return this -> values[this -> number_of_columns - 1];}

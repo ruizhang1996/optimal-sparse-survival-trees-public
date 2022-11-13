@@ -33,7 +33,7 @@ public:
     }
 };
 
-class KmeansHashComparator {
+class IBSHashComparator {
 public:
     static size_t hash(Bitmask const & key) {
         return key.hash();
@@ -93,9 +93,9 @@ typedef tbb::concurrent_hash_map< // Table of all bound lists
     key_type, bound_list, GraphVertexHashComparator, 
     tbb::scalable_allocator<std::pair<key_type const, bound_list>>> bound_table;
 
-typedef tbb::concurrent_hash_map< // Table of all saved kmeans results
-    Bitmask, float, KmeansHashComparator, 
-    tbb::scalable_allocator<std::pair<Bitmask const, float>>> kmeans_table;
+typedef tbb::concurrent_hash_map< // Table of all saved IBS results
+    Bitmask, float, IBSHashComparator,
+    tbb::scalable_allocator<std::pair<Bitmask const, float>>> ibs_table;
 
 typedef vertex_table::const_accessor const_vertex_accessor;
 typedef vertex_table::accessor vertex_accessor;
@@ -121,8 +121,8 @@ typedef bound_table::accessor bound_accessor;
 typedef bound_list::const_iterator const_bound_iterator;
 typedef bound_list::iterator bound_iterator;
 
-typedef kmeans_table::const_accessor const_kmeans_accessor;
-typedef kmeans_table::accessor kmeans_accessor;
+typedef ibs_table::const_accessor const_ibs_accessor;
+typedef ibs_table::accessor ibs_accessor;
 
 // Container for storing the dependency graph
 // The vertices of his graph act as a memoization table of subproblems
@@ -134,7 +134,7 @@ public:
     vertex_table vertices;
     adjacency_table edges;
     bound_table bounds;
-    kmeans_table kmeans;
+    ibs_table ibs;
 
     Graph(void);
     ~Graph(void);

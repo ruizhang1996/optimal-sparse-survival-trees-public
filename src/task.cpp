@@ -9,14 +9,14 @@ Task::Task(Bitmask const & capture_set, Bitmask const & feature_set, unsigned in
     float const regularization = Configuration::regularization;
     bool terminal = (this -> _capture_set.count() <= 1) || (this -> _feature_set.empty());
 
-    float potential, min_obj, max_loss;
+    float potential, min_loss, max_loss;
     unsigned int target_index;
     // Careful, the following method modifies capture_set
-    State::dataset.summary(this -> _capture_set, this -> _information, potential, min_obj, max_loss, target_index, id);
+    State::dataset.summary(this -> _capture_set, this -> _information, potential, min_loss, max_loss, target_index, id);
 
     this -> _base_objective = max_loss + regularization;
     // Add lambda because we know this has at least 2 leaves
-    float const lowerbound = std::min(this -> _base_objective, min_obj);
+    float const lowerbound = std::min(this -> _base_objective, min_loss + 2 * Configuration::regularization);
     float const upperbound = this -> _base_objective;
 
     // TODO: derive new bound here
@@ -30,7 +30,7 @@ Task::Task(Bitmask const & capture_set, Bitmask const & feature_set, unsigned in
     // } else if (
     if (
         terminal
-        || potential <= 0
+        || potential <= Configuration::regularization
         || (Configuration::depth_budget != 0 && capture_set.get_depth_budget() == 1)
         // || max_loss - min_obj < regularization // Accuracy
         // || potential < 2 * regularization // Leaf Support

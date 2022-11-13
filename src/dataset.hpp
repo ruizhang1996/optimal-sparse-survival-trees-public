@@ -71,7 +71,7 @@ public:
     // @modifies min_obj: The minimal objective incurred if all equivalent classes are optimally labelled without considering complexity penalty
     // @modifies max_loss: The loss incurred if the capture set is left unsplit and the best single label is chosen
     // @modifies target_index: The label to choose if left unsplit
-    void summary(Bitmask const & capture_set, float & info, float & potential, float & min_obj, float & max_loss, unsigned int & target_index, unsigned int id) const;
+    void summary(Bitmask const & capture_set, float & info, float & potential, float & min_loss, float & max_loss, unsigned int & target_index, unsigned int id) const;
 
     // @param feature_index: the index of the binary feature to use bisect the set
     // @param positive: if true, modifies set to reflect the part of the bisection that responds positive to the binary feature
@@ -95,7 +95,7 @@ public:
     void target_value(Bitmask capture_set, std::string & prediction_value) const;
 
     mutable int summary_calls = 0;
-    mutable int compute_kmeans_calls = 0;
+    mutable int compute_ibs_calls = 0;
     mutable int summary_calls_has_gap = 0;
     mutable double cum_percent = 0;
 
@@ -116,38 +116,31 @@ private:
     // E := Number of equivalent points (clusters) in the original dataset 
     std::vector< Bitmask > features; // Binary representation of columns
     std::vector< double > targets; // Float vector of size N
-    std::vector< double > clustered_targets; // Float vector of size E
-    std::vector< double > cluster_loss; // Float vector of size E
-    std::vector< int > clustered_targets_mapping; // Size N to index in E (value ranging from 0 - (E-1))
+    Bitmask censoring; // Binary representation of censoring
+    std::vector< double > target_values; // unique values in targets, size E
+    std::vector< int > targets_mapping; // Size N to index in E (value ranging from 0 - (E-1))
     std::vector< Bitmask > rows; // Binary representation of rows
     std::vector< Bitmask > feature_rows; // Binary representation of rows
     // Bitmask majority; // Binary representation of columns
-    std::vector<double> weights; // Float vector of size N, weights of sample
+    std::vector<double> inverse_prob_censoring_weights; // Float vector of size E, 1/G(y)
     float _normalizer;
     // Index index; // Index for calculating summaries
     // Index distance_index; // Index for calculating feature distances
+
 
     void construct_bitmasks(std::istream & input_stream);
 //    void construct_cost_matrix(void);
 //    void parse_cost_matrix(std::istream & input_stream);
 //    void aggregate_cost_matrix(void);
-    void construct_clusters(void);
 
-    void construct_ordering(void);
     
     void normalize_data(void);
-    
-    double compute_kmeans_lower_bound(Bitmask capture_set) const;
-    double compute_equivalent_points_lower_bound(Bitmask capture_set) const;
 
-    double ssq_loss(Bitmask capture_set) const;
-    double ssq_loss(std::vector< int > capture_set_idx, double & sum_weights) const;
+    double compute_ibs(std::vector<int> capture_set_idx) const;
 
-    double sabs_loss(Bitmask capture_set) const;
-    double sabs_loss(std::vector< int > capture_set_idx, double & sum_weights) const;
+    double compute_ibs(Bitmask capture_set) const;
 
-    double compute_loss(Bitmask capture_set) const;
-    double compute_loss(std::vector< int > capture_set_idx, double & sum_weights) const;
+    void compute_ipcw(std::vector<double> &ipcw);
 };
 
 #endif

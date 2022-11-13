@@ -120,6 +120,8 @@ public:
     //@return the weights of sample
     std::vector<double> get_weights(void);
 
+    std::set<std::string> get_target_values();
+
 private:
     // Original data
     std::vector< std::string > headers;
@@ -182,6 +184,7 @@ private:
     // @modifes: reorders the columns by increasing 1-step information gain
     // @note: Currently unsused
     void reindex(std::vector< std::vector< std::string > > const & rows);
+
 };
 
 #endif

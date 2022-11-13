@@ -11,12 +11,11 @@ void Dataset::load(std::istream & data_source) {
     construct_bitmasks(data_source);
     // Normalize target column
     normalize_data();
-
     // Build cluster and cluster target indicating whether a point is the equivalent set
-    if (Configuration::metric == Configuration::l2_loss || !Configuration::k_cluster){
-        construct_clusters();
-    }
-    
+
+    // Compute inverse probability of censoring weights
+    compute_ipcw(this -> inverse_prob_censoring_weights);
+
     if (Configuration::verbose) {
         std::cout << "Dataset Dimensions: " << height() << " x " << width() << " x " << depth() << std::endl;
     }
@@ -37,7 +36,7 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
     unsigned int number_of_binary_features = this -> encoder.binary_features(); // Number of source features
     // unsigned int number_of_binary_targets = this -> encoder.binary_targets(); // Number of target features
     this -> _size = number_of_samples;
-    this -> weights = encoder.get_weights();
+    // this -> weights = encoder.get_weights();
     this -> rows = this -> encoder.read_binary_rows();
 
     this -> features.resize(number_of_binary_features, number_of_samples);
@@ -48,99 +47,47 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
     auto compi = [targets](size_t i, size_t j) {
         return targets[i] < targets[j];
     };
-    if (Configuration::metric == Configuration::l1_loss && Configuration::k_cluster){
-        std::vector<int> target_order(number_of_samples);
-        std::iota(target_order.begin(), target_order.end(), 0);
-        std::sort(target_order.begin(), target_order.end(), compi);
-        std::vector<double> sorted_targets(number_of_samples);
-        std::vector<double> sorted_weights(number_of_samples);
-        std::vector<Bitmask> sorted_rows(number_of_samples);
-        for (int i = 0; i < target_order.size(); i++) {
-            sorted_targets[i] = targets[target_order[i]];
-            sorted_weights[i] = weights[target_order[i]];
-            sorted_rows[i] = rows[target_order[i]];
-        }
-        this -> targets = sorted_targets;
-        this -> weights = sorted_weights;
-        this -> rows = sorted_rows;
+    this -> censoring = Bitmask(number_of_samples);
+    // TODO must sort on target
+    std::vector<int> target_order(number_of_samples);
+    std::iota(target_order.begin(), target_order.end(), 0);
+    std::sort(target_order.begin(), target_order.end(), compi);
+    std::vector<double> sorted_targets(number_of_samples);
+    // std::vector<double> sorted_weights(number_of_samples);
+    std::vector<Bitmask> sorted_rows(number_of_samples);
+    for (int i = 0; i < target_order.size(); i++) {
+        sorted_targets[i] = targets[target_order[i]];
+        // sorted_weights[i] = weights[target_order[i]];
+        sorted_rows[i] = rows[target_order[i]];
     }
-
-
+    this -> targets = sorted_targets;
+    // this -> weights = sorted_weights;
+    this -> rows = sorted_rows;
+    // unique target values
+    std::set< std::string > target_string_values = this -> encoder.get_target_values();
+    for (auto it = target_string_values.begin(); it != target_string_values.end(); ++it){
+        this -> target_values.emplace_back(atof((*it).c_str()));
+    }
+    std::sort(target_values.begin(), target_values.end());
+    int k = 0;
+    this -> targets_mapping.resize(number_of_samples);
     for (unsigned int i = 0; i < number_of_samples; ++i) {
+        // add for survival trees, binary target of censoring
+        this -> censoring.set(i, bool(rows[i][number_of_binary_features]));
+        // map target to value index
+        if (this -> targets[i] != this -> target_values[k]){
+            k += 1;
+        }
+        this -> targets_mapping[i] = k;
         for (unsigned int j = 0; j < number_of_binary_features; ++j) {
             this -> features[j].set(i, bool(rows[i][j]));
             this -> feature_rows[i].set(j, bool(rows[i][j]));
         }
     }
-    //TODO: check depth for regression
+
     this -> shape = std::tuple< int, int, int >(this -> rows.size(), this -> features.size(), this -> targets.size());
 };
 
-void Dataset::construct_clusters(void) {
-    std::vector< Bitmask > keys(height(), width());
-    for (unsigned int i = 0; i < height(); ++i) {
-        for (unsigned int j = 0; j < width(); ++j) {
-            keys[i].set(j, bool(this -> rows[i][j]));
-        }
-    }
-    
-    // Step 1: Construct a map from the binary features to their clusters,
-    // indicated by their indices in capture set
-    std::unordered_map< Bitmask, std::vector< int > > clusters;
-    for (int i = 0; i < height(); ++i) {
-        Bitmask const & key = keys.at(i);
-        clusters[key].emplace_back(i);
-    }
-    
-    // Step 2: Convert clusters map into an array by taking the mean of each
-    // cluster, initialize unsorted order, and initialize data index to cluster
-    // index mapping
-    std::vector< double > clustered_targets;
-    std::vector< int > cluster_order;
-    std::vector< double > cluster_loss;
-    std::vector< int > clustered_targets_mapping(size());
-    // std::vector<double> cluster_weights;
-    int cluster_idx = 0;
-    for (auto it = clusters.begin(); it != clusters.end(); ++it) {
-        std::vector< int > const & cluster = it -> second;
-        std::vector< double > cluster_values;
-        double sum_weights;
-        for (int idx : cluster) {
-            cluster_values.emplace_back(weights[idx] * targets[idx]);
-            clustered_targets_mapping[idx] = cluster_idx;
-        }
-        cluster_loss.emplace_back(compute_loss(cluster, sum_weights));
-        double sum = std::accumulate(cluster_values.begin(), cluster_values.end(), 0.0);
-        double target = sum / sum_weights; // TODO check: it seems L1 doesn't depend on cluster_target
-        clustered_targets.emplace_back(target);
-        cluster_order.emplace_back(cluster_idx++);
-    }
-
-    // Step 3: Sort clustered target values and update data index to cluster
-    // index mapping
-    auto compi = [clustered_targets](size_t i, size_t j) {
-        return clustered_targets[i] < clustered_targets[j];
-    };
-    std::sort(cluster_order.begin(), cluster_order.end(), compi);
-    std::vector< double > sorted_clustered_targets(clustered_targets.size());
-    std::vector< double > sorted_cluster_loss(clustered_targets.size());
-    for (int i = 0; i < clustered_targets.size(); i++) {
-        sorted_clustered_targets[i] = clustered_targets[cluster_order[i]];
-        sorted_cluster_loss[i] = cluster_loss[cluster_order[i]];
-    }
-    std::vector< int > inverted_cluster_order(cluster_order.size());
-    for (int i = 0; i < cluster_order.size(); i++) {
-        inverted_cluster_order[cluster_order[i]] = i;
-    }
-    for (int i = 0; i < size(); i++) {
-        clustered_targets_mapping[i] = inverted_cluster_order[clustered_targets_mapping[i]];
-    }
-
-    this -> clustered_targets = sorted_clustered_targets;
-    this -> cluster_loss = sorted_cluster_loss;
-    this -> clustered_targets_mapping = clustered_targets_mapping;
-
-}
 
 // TODO: investigate 
 float Dataset::distance(Bitmask const & set, unsigned int i, unsigned int j, unsigned int id) const {
@@ -148,155 +95,65 @@ float Dataset::distance(Bitmask const & set, unsigned int i, unsigned int j, uns
 }
 
 
-void Dataset::construct_ordering(void) {
-    auto targets = this -> targets;
-    auto compi = [targets](size_t i, size_t j) {
-        return targets[i] < targets[j];
-    };
-    std::vector<int> order(size());
-
-    for (size_t i=0; i<order.size(); ++i) {
-        order[i] = i;
-    }
-    
-    std::sort(order.begin(), order.end(), compi);
-
-    // this -> targets_ordering = order;
-}
-
 void Dataset::target_value(Bitmask capture_set, std::string & prediction_value) const{
+    prediction_value = std::to_string(0);
+}
+
+
+
+double Dataset::compute_ibs(Bitmask capture_set) const{
     int max = capture_set.size();
-    double sum = 0.0;
-    double wsum = 0.0;
-    for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
-        sum += targets[i];
-        wsum += weights[i];
+    std::vector<double> S(target_values.size(), 1);
+    int i = capture_set.scan(0, true);
+    double prod = 1.0;
+    unsigned int number_of_death = 0;
+    unsigned int number_of_known_alive = capture_set.count();
+    unsigned int number_of_sample_current_time = 0;
+    while (i < max){
+        int next = capture_set.scan(i + 1, true);
+        number_of_death += censoring.get(i);
+        number_of_sample_current_time += 1;
+        // if i is the last captured point
+        if (next >= max){
+            prod *= (1 - (float) number_of_death / (float) number_of_known_alive);
+            for (int j = targets_mapping[i]; j < target_values.size(); ++j) {
+                S[j] = prod;
+            }
+            number_of_known_alive -= number_of_sample_current_time;
+            number_of_sample_current_time = 0;
+            number_of_death = 0;
+        }
+        else if (targets_mapping[i] != targets_mapping[next]){
+            prod *= (1 - (float) number_of_death / (float) number_of_known_alive);
+            for (int j = targets_mapping[i]; j < targets_mapping[next]; ++j) {
+                S[j] = prod;
+            }
+            number_of_known_alive -= number_of_sample_current_time;
+            number_of_sample_current_time = 0;
+            number_of_death = 0;
+        }
+        i = next;
     }
-    prediction_value = std::to_string(sum/wsum * this -> _normalizer);
+    double ibs = 0;
+    for (int j = capture_set.scan(0, true); j< max; j = capture_set.scan(j + 1, true)) {
+        for (int k = 0; k < target_values.size() - 1; ++k) {
+            if (target_values[k] < targets[j]){
+                ibs += pow(S[k] - 1, 2) * inverse_prob_censoring_weights[k] * (target_values[k + 1] - target_values[k]);
+            } else if (censoring.get(j)){
+                ibs += pow(S[k], 2) * inverse_prob_censoring_weights[targets_mapping[j]] * (target_values[k + 1] - target_values[k]);
+            }
+        }
+    }
+    return ibs;
 }
-double Dataset::ssq_loss(Bitmask capture_set) const {
-    double cumsum1 = 0;
-    double cumsum2 = 0;
-    double wsum = 0;
-    int max = capture_set.size();
-    for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
-        cumsum1 += weights[i] * targets[i];
-        cumsum2 += weights[i] * targets[i] * targets[i];
-        wsum += weights[i];
-    }
-    // int count = capture_set.count();
-    // TODO: check overhead of weights implementation
-    return cumsum2 - cumsum1 * cumsum1 / wsum;
+double Dataset::compute_ibs(std::vector< int > capture_set_idx) const{
+    return 0;
 }
-
-double Dataset::ssq_loss(std::vector< int > capture_set_idx, double & sum_weights) const {
-    double cumsum1 = 0;
-    double cumsum2 = 0;
-    // int count = 0;
-    double wsum = 0;
-    for (int i : capture_set_idx) {
-        cumsum1 += weights[i] * targets[i];
-        cumsum2 += weights[i] * targets[i] * targets[i];
-        wsum += weights[i];
-    }
-    sum_weights = wsum;
-    return cumsum2 - cumsum1 * cumsum1 / wsum;
-}
-
-double Dataset::sabs_loss(Bitmask capture_set) const {
-    double total_weights = 0;
-    int max = capture_set.size();
-    for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
-        total_weights += weights[i];
-    }
-    // find median of cluster points
-    int m = capture_set.scan(0, true);
-    double wsum = weights[m];
-    while (wsum < 0.5 * total_weights){
-        m = capture_set.scan(m + 1, true);
-        wsum += weights[m];
-    }
-    double sum = 0;
-    // sum of absolute value
-    for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
-        sum += abs((targets[i] - targets[m]) * weights[i]);
-    }
-    return sum;
-}
-
-double Dataset::sabs_loss(std::vector< int > capture_set_idx, double & sum_weights) const {
-
-    double total_weights = 0;
-    for (int i : capture_set_idx) {
-        total_weights += weights[i];
-    }
-    sum_weights = total_weights;
-    // find median of cluster points
-    int m = 0;
-    double wsum = weights[capture_set_idx[m]];
-    while (wsum < 0.5 * total_weights){
-        m++;
-        wsum += weights[capture_set_idx[m]];
-    }
-    double sum = 0;
-    // sum of absolute value
-    for (int i : capture_set_idx) {
-        sum += abs((targets[i] - targets[capture_set_idx[m]]) * weights[i]);
-    }
-    return sum;
-}
-
-double Dataset::compute_loss(Bitmask capture_set) const{
-    double loss = 0;
-    switch (Configuration::metric) {
-        case Configuration::l2_loss:
-            loss = ssq_loss(capture_set);
-            break;
-        case Configuration::l1_loss:
-            loss = sabs_loss(capture_set);
-            break;
-        default:
-            std::stringstream reason;
-            reason << "Unsupported Metric: " << Configuration::metric;
-            throw IntegrityViolation("Dataset::compute_loss(Bitmask): ", reason.str());
-    }
-    return loss;
-}
-
-double Dataset::compute_loss(std::vector< int > capture_set_idx, double & sum_weights) const{
-    double loss = 0;
-    switch (Configuration::metric) {
-        case Configuration::l2_loss:
-            loss = ssq_loss(capture_set_idx, sum_weights);
-            break;
-        case Configuration::l1_loss:
-            loss = sabs_loss(capture_set_idx, sum_weights);
-            break;
-        default:
-            std::stringstream reason;
-            reason << "Unsupported Metric: " << Configuration::metric;
-            throw IntegrityViolation("Dataset::compute_loss(vector, sum_weights): ", reason.str());
-    }
-    return loss;
-}
-
 void Dataset::normalize_data() {
+    // largest target
     double loss_normalizer;
-    switch (Configuration::metric) {
-        case Configuration::l2_loss: {
-            loss_normalizer = std::sqrt(ssq_loss(Bitmask(size(), true)));
-            break;
-        }
-        case Configuration::l1_loss: {
-            loss_normalizer = sabs_loss(Bitmask(size(), true));
-            break;
-        }
-        default:{
-            std::stringstream reason;
-            reason << "Unsupported Metric: " << Configuration::metric;
-            throw IntegrityViolation("Dataset::normalize_data", reason.str());
-        }
-    }
+    //
+    loss_normalizer = this -> targets[size() - 1];
 
 
     for (int i = 0; i < size(); i++) {
@@ -307,80 +164,7 @@ void Dataset::normalize_data() {
     std::cout << "loss_normalizer: " << loss_normalizer << std::endl;
 }
 
-// N := Number of datapoints in the original dataset
-// E := Number of equivalent points (clusters) in the original dataset 
-double Dataset::compute_kmeans_lower_bound(Bitmask capture_set) const {
 
-    int max = capture_set.size();
-
-    double reg = Configuration::regularization;
-    
-    if (capture_set.count() == 1) {
-        return reg;
-    }
-    ldouble min;
-    std::vector< double > w;
-    std::vector< double > values;
-
-    if (Configuration::metric == Configuration::l2_loss){
-        double correction = 0;
-
-        // count: E
-        std::vector< double > count(clustered_targets.size());
-        for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
-            count[clustered_targets_mapping[i]] += weights[i];
-            correction += weights[i] * targets[i] * targets[i];
-        }
-
-        // TODO: we can precompute all the sum of squares so one less passthrough
-        for (int i = 0; i < count.size(); i++) {
-            if (count[i] > 0) {
-                w.emplace_back(count[i]);
-                values.emplace_back(clustered_targets[i]);
-                correction -= clustered_targets[i] * clustered_targets[i] * count[i];
-            }
-        }
-
-        int N = w.size();
-        int Kmax = std::min(100, N);
-        std::vector< std::vector< ldouble > > S( Kmax, std::vector<ldouble>(N) );
-        std::vector< std::vector< size_t > > J( Kmax, std::vector<size_t>(N) );
-
-        // TODO: add dynamically assigned Kmax via scope
-        min = fill_dp_matrix_dynamic_stop(values, w, S, J, L2, reg) + correction;
-
-    }
-    else{
-        for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
-            w.emplace_back(weights[i]);
-            values.emplace_back(targets[i]);
-        }
-        int N = w.size();
-        int Kmax = std::min(100, N);
-        std::vector< std::vector< ldouble > > S( Kmax, std::vector<ldouble>(N) );
-        std::vector< std::vector< size_t > > J( Kmax, std::vector<size_t>(N) );
-
-        // TODO: add dynamically assigned Kmax via scope
-        min = fill_dp_matrix_dynamic_stop(values, w, S, J, L1, reg);
-    }
-    return min;
-}
-double Dataset::compute_equivalent_points_lower_bound(Bitmask capture_set) const {
-    int max = capture_set.size();
-    
-    
-    double sum_loss = 0;
-    std::vector< int > count(clustered_targets.size());
-    for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
-        if (count[clustered_targets_mapping[i]] == 0) {
-            sum_loss += cluster_loss[clustered_targets_mapping[i]];
-        }
-        count[clustered_targets_mapping[i]]++;
-    }
-    
-    return sum_loss;
-
-}
 
 // @param feature_index: selects the feature on which to split
 // @param positive: determines whether to provide the subset that tests positive on the feature or tests negative on the feature
@@ -409,7 +193,7 @@ void Dataset::subset(unsigned int feature_index, Bitmask & negative, Bitmask & p
 // 3. Check equiv (points lower bound + 2 * reg) before using Kmeans to
 //    determine if we need more split as it has a way lower overhead
 
-void Dataset::summary(Bitmask const & capture_set, float & info, float & potential, float & min_obj, float & max_loss, unsigned int & target_index, unsigned int id) const {
+void Dataset::summary(Bitmask const & capture_set, float & info, float & potential, float & min_loss, float & max_loss, unsigned int & target_index, unsigned int id) const {
     summary_calls++;
     Bitmask & buffer = State::locals[id].columns[0];
     //unsigned int * distribution; // The frequencies of each class
@@ -417,7 +201,7 @@ void Dataset::summary(Bitmask const & capture_set, float & info, float & potenti
 
     unsigned int cost_minimizer = 0;
 
-    max_loss = compute_loss(capture_set);
+    //max_loss = compute_ibs(capture_set);
     //float max_cost_reduction = 0.0;
     float equivalent_point_loss = 0.0;
     //float support = (float)(capture_set.count()) / (float)(height());
@@ -430,17 +214,15 @@ void Dataset::summary(Bitmask const & capture_set, float & info, float & potenti
     // }
     // assert(min_cost + Configuration::regularization < equivalent_point_loss_1 || equivalent_point_loss_1 < equivalent_point_loss);
     // equivalent_point_loss = 2 * Configuration::regularization + compute_equivalent_points_lower_bound(capture_set);
-    kmeans_accessor stored_kmeans_accessor;
-    if (State::graph.kmeans.find(stored_kmeans_accessor, capture_set)) {
-        equivalent_point_loss = stored_kmeans_accessor->second;
-        stored_kmeans_accessor.release();
+    ibs_accessor stored_ibs_accessor;
+    if (State::graph.ibs.find(stored_ibs_accessor, capture_set)) {
+        max_loss = stored_ibs_accessor->second;
+        stored_ibs_accessor.release();
     } else {
-        if (Configuration::k_cluster){equivalent_point_loss = compute_kmeans_lower_bound(capture_set);}
-        else{equivalent_point_loss = compute_equivalent_points_lower_bound(capture_set) + 2 * Configuration::regularization;}
-
-        auto new_kmeans = std::make_pair(capture_set, equivalent_point_loss);
-        State::graph.kmeans.insert(new_kmeans);
-        compute_kmeans_calls++;
+        max_loss = compute_ibs(capture_set);
+        auto new_ibs = std::make_pair(capture_set, max_loss);
+        State::graph.ibs.insert(new_ibs);
+        compute_ibs_calls++;
     }
 
     // float equivalent_point_loss_1 = 2 * Configuration::regularization + compute_equivalent_points_lower_bound(capture_set);
@@ -455,8 +237,8 @@ void Dataset::summary(Bitmask const & capture_set, float & info, float & potenti
         
     // }
 
-    min_obj = equivalent_point_loss;
-    potential = max_loss + Configuration::regularization - min_obj;
+    min_loss = 0;
+    potential = max_loss;
     info = information;
     target_index = cost_minimizer;
 }
@@ -487,4 +269,25 @@ unsigned int Dataset::size(void) const {
 
 bool Dataset::index_comparator(const std::pair< unsigned int, unsigned int > & left, const std::pair< unsigned int, unsigned int > & right) {
     return left.second < right.second;
+}
+
+void Dataset::compute_ipcw(std::vector<double> & ipcw){
+    ipcw.resize(target_values.size(), 0);
+    std::vector<int> number_of_death(this-> target_values.size(), 0);
+    std::vector<int> number_of_known_alive(this-> target_values.size(), 0);
+    double prod = 1.0;
+    for (int i = 0; i < size(); ++i) {
+        if (number_of_known_alive[targets_mapping[i]] == 0){
+            if (i > 0) {
+                prod *= (1 - (double) number_of_death[targets_mapping[i-1]] / (double) number_of_known_alive[targets_mapping[i-1]]);
+                if (prod > 0) {ipcw[targets_mapping[i-1]] = 1 / prod;}
+                else {ipcw[targets_mapping[i-1]] = 0;}
+            }
+            number_of_known_alive[targets_mapping[i]] = size() - i;
+        }
+        if (censoring.get(i) < 1){number_of_death[targets_mapping[i]] += 1;}
+    }
+    prod *= (1 - (double) number_of_death[targets_mapping[size() - 1]] / (double) number_of_known_alive[targets_mapping[size() - 1]]);
+    if (prod > 0){ipcw[targets_mapping[size() - 1]] = 1 / prod;}
+    else{ipcw[targets_mapping[size() - 1]] = 0;}
 }
