@@ -18,7 +18,10 @@ Task::Task(Bitmask const & capture_set, Bitmask const & feature_set, unsigned in
     // Add lambda because we know this has at least 2 leaves
     float const lowerbound = std::min(this -> _base_objective, min_loss + 2 * Configuration::regularization);
     float const upperbound = this -> _base_objective;
-
+    if (capture_set.count() == State::dataset.size()){
+        std::cout << "ub:" << upperbound << std::endl;
+        std::cout << "lb:" << lowerbound << std::endl;
+    }
     // TODO: derive new bound here
     // if ( (1.0 - min_obj < regularization ) // Insufficient maximum accuracy
     //     || ( potential < 2 * regularization && (1.0 - max_loss) < regularization) ) // Leaf Support + Incremental Accuracy
@@ -271,8 +274,7 @@ bool Task::update(float lower, float upper, int optimal_feature) {
     this -> _optimal_feature = optimal_feature;
 
     float regularization = Configuration::regularization;
-    if ((Configuration::cancellation && 1.0 - this -> _lowerbound < 0.0)
-        || this -> _upperbound - this -> _lowerbound <= std::numeric_limits<float>::epsilon()) {
+    if (this -> _upperbound - this -> _lowerbound <= std::numeric_limits<float>::epsilon()) {
         this -> _lowerbound = this -> _upperbound;
     }
     return change;
