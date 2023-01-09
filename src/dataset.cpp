@@ -144,9 +144,7 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
             }
         }
     }
-    if (capture_set.count() == _size){
-        std::cout<< ibs << std::endl;
-    }
+
     return ibs;
 }
 double Dataset::compute_ibs(std::vector< int > capture_set_idx) const{
