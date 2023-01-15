@@ -153,9 +153,7 @@ double Dataset::compute_ibs(std::vector< int > capture_set_idx) const{
 void Dataset::normalize_data() {
     // largest target
     double loss_normalizer;
-    //
     loss_normalizer = this -> targets[size() - 1];
-
 
     for (int i = 0; i < size(); i++) {
         targets[i] = targets[i] / loss_normalizer;
