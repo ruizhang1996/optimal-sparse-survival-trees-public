@@ -1,13 +1,17 @@
 #include "model.hpp"
 #include "dataset.hpp"
+unsigned int Model::leaf_num = 0;
+
 Model::Model(void) {}
 
 Model::Model(std::shared_ptr<Bitmask> capture_set) {
     std::string prediction_name, prediction_type, prediction_value;
+    prediction_value = std::to_string(Model::leaf_num);
+    Model::leaf_num ++;
     float info, potential, min_loss, max_loss;
     unsigned int target_index;
     State::dataset.summary(* capture_set, info, potential, min_loss, max_loss, target_index, 0);
-    State::dataset.target_value(* capture_set, prediction_value);
+    //State::dataset.target_value(* capture_set, prediction_value);
     State::dataset.encoder.header(prediction_name);
     State::dataset.encoder.target_type(prediction_type);
     this -> binary_target = target_index;
