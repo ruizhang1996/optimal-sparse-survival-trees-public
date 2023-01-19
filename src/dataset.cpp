@@ -48,7 +48,7 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
         return targets[i] < targets[j];
     };
     this -> censoring = Bitmask(number_of_samples);
-    // TODO must sort on target
+    // must sort on target
     std::vector<int> target_order(number_of_samples);
     std::iota(target_order.begin(), target_order.end(), 0);
     std::sort(target_order.begin(), target_order.end(), compi);
@@ -73,15 +73,15 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
     this -> targets_mapping.resize(number_of_samples);
     for (unsigned int i = 0; i < number_of_samples; ++i) {
         // add for survival trees, binary target of censoring
-        this -> censoring.set(i, bool(rows[i][number_of_binary_features]));
+        this -> censoring.set(i, bool(this -> rows[i][number_of_binary_features]));
         // map target to value index
         if (this -> targets[i] != this -> target_values[k]){
             k += 1;
         }
         this -> targets_mapping[i] = k;
         for (unsigned int j = 0; j < number_of_binary_features; ++j) {
-            this -> features[j].set(i, bool(rows[i][j]));
-            this -> feature_rows[i].set(j, bool(rows[i][j]));
+            this -> features[j].set(i, bool(this -> rows[i][j]));
+            this -> feature_rows[i].set(j, bool(this -> rows[i][j]));
         }
     }
 
