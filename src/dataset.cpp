@@ -158,6 +158,9 @@ void Dataset::normalize_data() {
     for (int i = 0; i < size(); i++) {
         targets[i] = targets[i] / loss_normalizer;
     }
+    for (int i = 0; i < this -> target_values.size(); ++i) {
+        target_values[i] = target_values[i] / loss_normalizer;
+    }
     this -> _normalizer = loss_normalizer;
 
     std::cout << "loss_normalizer: " << loss_normalizer << std::endl;
@@ -271,18 +274,19 @@ bool Dataset::index_comparator(const std::pair< unsigned int, unsigned int > & l
 }
 
 void Dataset::compute_ipcw(std::vector<double> & ipcw){
-    ipcw.resize(target_values.size(), 0);
-    std::vector<int> number_of_death(this-> target_values.size(), 0);
-    std::vector<int> number_of_known_alive(this-> target_values.size(), 0);
+    ipcw.resize(target_values.size(), -1);
+    std::vector<int> number_of_death(this-> target_values.size(), -1);
+    std::vector<int> number_of_known_alive(this-> target_values.size(), -1);
     double prod = 1.0;
     for (int i = 0; i < size(); ++i) {
-        if (number_of_known_alive[targets_mapping[i]] == 0){
+        if (number_of_known_alive[targets_mapping[i]] == -1){
             if (i > 0) {
                 prod *= (1 - (double) number_of_death[targets_mapping[i-1]] / (double) number_of_known_alive[targets_mapping[i-1]]);
                 if (prod > 0) {ipcw[targets_mapping[i-1]] = 1 / prod;}
                 else {ipcw[targets_mapping[i-1]] = 0;}
             }
             number_of_known_alive[targets_mapping[i]] = size() - i;
+            number_of_death[targets_mapping[i]] = 0;
         }
         if (censoring.get(i) < 1){number_of_death[targets_mapping[i]] += 1;}
     }
