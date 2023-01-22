@@ -119,9 +119,6 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
             for (int j = targets_mapping[i]; j < target_values.size(); ++j) {
                 S[j] = prod;
             }
-            number_of_known_alive -= number_of_sample_current_time;
-            number_of_sample_current_time = 0;
-            number_of_death = 0;
         }
         else if (targets_mapping[i] != targets_mapping[next]){
             prod *= (1 - (float) number_of_death / (float) number_of_known_alive);
