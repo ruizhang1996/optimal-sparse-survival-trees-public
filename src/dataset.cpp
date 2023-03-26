@@ -142,7 +142,7 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
         }
     }
 
-    return ibs;
+    return ibs / size();
 }
 double Dataset::compute_ibs(std::vector< int > capture_set_idx) const{
     return 0;
