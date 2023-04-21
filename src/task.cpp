@@ -83,7 +83,11 @@ void Task::create_children(unsigned int id) {
             for (unsigned int k = 0; k < 2; ++k) {
                 buffer = this -> _capture_set;
                 State::dataset.subset(j, conditions[k], buffer);
-                if (buffer.empty() || buffer == this -> _capture_set) { skip = true; continue; }
+                unsigned int buffer_count = buffer.count();
+                if (std::min(buffer_count, buffer.size() - buffer_count) < Configuration::minimum_captured_points) {
+                    skip = true;
+                    continue;
+                }
                 Task child(buffer, this -> _feature_set, id);
                 State::locals[id].neighbourhood[2 * j + k] = child;
             }

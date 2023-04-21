@@ -11,11 +11,11 @@
     "diagnostics": true,
     "verbose": true,
   
-    "regularization": 1000,
+    "regularization": 0.01,
     "uncertainty_tolerance": 0.0,
     "upperbound": 0.0,
     "depth_budget": 6,
-
+    "minimum_captured_points": 7,
 
     "model_limit": 1,
     "precision_limit": 0,
