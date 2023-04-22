@@ -131,7 +131,7 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
         }
         i = next;
     }
-    double ibs = 0;
+    double ibs = 0.0;
 //    for (int j = capture_set.scan(0, true); j< max; j = capture_set.scan(j + 1, true)) {
 //        for (int k = 0; k < target_values.size() - 1; ++k) {
 //            if (target_values[k] < targets[j]){
@@ -144,13 +144,24 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
     int j = capture_set.scan(0, true);
     int prev_j = 0;
     int num_included = 0;
+    double prev_ibs_right;
+    bool calculated = false;
     while (j < max){
         for (int k = targets_mapping[prev_j]; k < targets_mapping[j]; ++k) {
             ibs += pow(S[k] - 1, 2) * inverse_prob_censoring_weights[k] * (target_values[k + 1] - target_values[k]) * (capture_set.count() - num_included);
         }
+        if (targets_mapping[prev_j] != targets_mapping[j]) calculated = false;
         if (censoring.get(j)){
-            for (int k = targets_mapping[j]; k < target_values.size() - 1; ++k) {
-                ibs += pow(S[k], 2) * inverse_prob_censoring_weights[targets_mapping[j]] * (target_values[k + 1] - target_values[k]);
+            if (targets_mapping[prev_j] == targets_mapping[j] && calculated){
+                ibs += prev_ibs_right;
+            } else{
+                double tmp = 0.0;
+                for (int k = targets_mapping[j]; k < target_values.size() - 1; ++k) {
+                    tmp += pow(S[k], 2) * inverse_prob_censoring_weights[targets_mapping[j]] * (target_values[k + 1] - target_values[k]);
+                }
+                ibs += tmp;
+                prev_ibs_right = tmp;
+                calculated = true;
             }
         }
         num_included ++;
