@@ -85,7 +85,7 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
         }
     }
 
-    this -> shape = std::tuple< int, int, int >(this -> rows.size(), this -> features.size(), this -> targets.size());
+    this -> shape = std::tuple< int, int, int >(this -> rows.size(), this -> features.size(), this -> target_values.size());
 };
 
 
@@ -132,15 +132,34 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
         i = next;
     }
     double ibs = 0;
-    for (int j = capture_set.scan(0, true); j< max; j = capture_set.scan(j + 1, true)) {
-        for (int k = 0; k < target_values.size() - 1; ++k) {
-            if (target_values[k] < targets[j]){
-                ibs += pow(S[k] - 1, 2) * inverse_prob_censoring_weights[k] * (target_values[k + 1] - target_values[k]);
-            } else if (censoring.get(j)){
+//    for (int j = capture_set.scan(0, true); j< max; j = capture_set.scan(j + 1, true)) {
+//        for (int k = 0; k < target_values.size() - 1; ++k) {
+//            if (target_values[k] < targets[j]){
+//                ibs += pow(S[k] - 1, 2) * inverse_prob_censoring_weights[k] * (target_values[k + 1] - target_values[k]);
+//            } else if (censoring.get(j)){
+//                ibs += pow(S[k], 2) * inverse_prob_censoring_weights[targets_mapping[j]] * (target_values[k + 1] - target_values[k]);
+//            }
+//        }
+//    }
+    int j = capture_set.scan(0, true);
+    int prev_j = 0;
+    int num_included = 0;
+    while (j < max){
+        for (int k = targets_mapping[prev_j]; k < targets_mapping[j]; ++k) {
+            ibs += pow(S[k] - 1, 2) * inverse_prob_censoring_weights[k] * (target_values[k + 1] - target_values[k]) * (capture_set.count() - num_included);
+        }
+        if (censoring.get(j)){
+            for (int k = targets_mapping[j]; k < target_values.size() - 1; ++k) {
                 ibs += pow(S[k], 2) * inverse_prob_censoring_weights[targets_mapping[j]] * (target_values[k + 1] - target_values[k]);
             }
         }
+        num_included ++;
+        prev_j = j;
+        j = capture_set.scan(j + 1, true);
     }
+//    if (std::abs(ibs - new_ibs) >= std::numeric_limits<float>::epsilon()){
+//        std::cout << ibs << ", " << new_ibs << std::endl;
+//    }
 
     return ibs / size();
 }
