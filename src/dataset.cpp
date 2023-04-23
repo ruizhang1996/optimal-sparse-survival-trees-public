@@ -69,6 +69,31 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
         this -> target_values.emplace_back(atof((*it).c_str()));
     }
     std::sort(target_values.begin(), target_values.end());
+    if ( (float) target_values.size() / this -> targets.size() > 0.1){
+        unsigned int num_bucket;
+        if (Configuration::number_of_buckets > 0) {
+            num_bucket = Configuration::number_of_buckets;
+        } else {
+            num_bucket = std::round(0.1 * this -> targets.size());
+        }
+        double bucket_width  = (this -> target_values.back() - this -> target_values[0]) / num_bucket;
+        double max_value = target_values.back();
+        this -> target_values.resize(1);
+
+        for (int i = 0; i < num_bucket - 1; ++i) {
+            this -> target_values.emplace_back(this -> target_values.back() + bucket_width);
+        }
+        assert(target_values.back() < max_value);
+        this -> target_values.emplace_back(max_value);
+        int target_value_idx = 0;
+        for (int i = 0; i < number_of_samples; ++i) {
+            if (target_value_idx < this -> target_values.size() - 1 && this -> target_values[target_value_idx + 1] <= this -> targets[i]){
+                target_value_idx ++;
+            }
+            assert(this -> targets[i] >= this -> target_values[target_value_idx]);
+            this -> targets[i] = this -> target_values[target_value_idx];
+        }
+    }
     int k = 0;
     this -> targets_mapping.resize(number_of_samples);
     for (unsigned int i = 0; i < number_of_samples; ++i) {

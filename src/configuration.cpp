@@ -15,6 +15,7 @@ bool Configuration::verbose = false;
 bool Configuration::diagnostics = false;
 
 unsigned int Configuration::minimum_captured_points = 1;
+unsigned int Configuration::number_of_buckets = 0;
 unsigned char Configuration::depth_budget = 0;
 bool Configuration::reference_LB = false;
 std::string Configuration::path_to_labels = "";
@@ -61,6 +62,7 @@ void Configuration::configure(json config) {
     if (config.contains("diagnostics")) { Configuration::diagnostics = config["diagnostics"]; }
 
     if (config.contains("minimum_captured_points")) { Configuration::minimum_captured_points = config["minimum_captured_points"]; }
+    if (config.contains("number_of_buckets")) {Configuration::number_of_buckets = config["number_of_buckets"];}
     if (config.contains("depth_budget")) { Configuration::depth_budget = config["depth_budget"]; }
     if (config.contains("reference_LB")) {
         Configuration::reference_LB = config["reference_LB"];
