@@ -76,6 +76,8 @@ gosdt_SOURCES = \
 	src/gosdt.hpp \
 	src/main.cpp \
 	src/main.hpp \
+	src/reference.cpp \
+    src/reference.hpp \
 	include/ckmeans/Ckmeans.1d.dp.cpp \
 	include/ckmeans/dynamic_prog.cpp \
 	include/ckmeans/fill_SMAWK.cpp \

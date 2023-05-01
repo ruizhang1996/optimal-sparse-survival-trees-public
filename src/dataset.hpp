@@ -71,7 +71,7 @@ public:
     // @modifies min_obj: The minimal objective incurred if all equivalent classes are optimally labelled without considering complexity penalty
     // @modifies max_loss: The loss incurred if the capture set is left unsplit and the best single label is chosen
     // @modifies target_index: The label to choose if left unsplit
-    void summary(Bitmask const & capture_set, float & info, float & potential, float & min_loss, float & max_loss, unsigned int & target_index, unsigned int id) const;
+    void summary(Bitmask const & capture_set, float & info, float & potential, float & min_loss, float & guaranteed_min_loss, float & max_loss, unsigned int & target_index, unsigned int id) const;
 
     // @param feature_index: the index of the binary feature to use bisect the set
     // @param positive: if true, modifies set to reflect the part of the bisection that responds positive to the binary feature
@@ -133,14 +133,18 @@ private:
 //    void parse_cost_matrix(std::istream & input_stream);
 //    void aggregate_cost_matrix(void);
 
-    
+    void construct_clusters(void);
     void normalize_data(void);
 
-    double compute_ibs(std::vector<int> capture_set_idx) const;
 
-    double compute_ibs(Bitmask capture_set) const;
+    double compute_ibs(Bitmask capture_set, std::vector<int> & cumulative_death_per_target_values, std::vector<int> & num_death_per_target_values, std::vector<double> & survival_function) const;
 
     void compute_ipcw(std::vector<double> &ipcw);
+
+    std::vector<int> clustered_mapping;
+    std::vector<std::vector<int>> cluster_indices;
+
+    double compute_lowerbound(Bitmask capture_set, std::vector<int> cumulative_death_per_target_values, std::vector<int> num_death_per_target_values, std::vector<double> S) const;
 };
 
 #endif

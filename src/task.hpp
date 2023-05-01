@@ -84,6 +84,8 @@ public:
 
     // observer method used for debugging
     std::string inspect(void) const;
+
+    double guaranteed_lowerbound(void);
 private:
     Tile _identifier;
     Bitmask _capture_set;
@@ -97,6 +99,7 @@ private:
 
     float _lowerbound = -std::numeric_limits<float>::max();
     float _upperbound = std::numeric_limits<float>::max();
+    float _guaranteed_lowerbound = -std::numeric_limits<float>::max();
 
     float _context_lowerbound = 0.0;
     float _context_upperbound = 0.0;

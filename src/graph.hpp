@@ -97,6 +97,10 @@ typedef tbb::concurrent_hash_map< // Table of all saved IBS results
     Bitmask, float, IBSHashComparator,
     tbb::scalable_allocator<std::pair<Bitmask const, float>>> ibs_table;
 
+typedef tbb::concurrent_hash_map< // Table of all saved LB results
+        Bitmask, float, IBSHashComparator,
+        tbb::scalable_allocator<std::pair<Bitmask const, float>>> lb_table;
+
 typedef vertex_table::const_accessor const_vertex_accessor;
 typedef vertex_table::accessor vertex_accessor;
 
@@ -124,6 +128,8 @@ typedef bound_list::iterator bound_iterator;
 typedef ibs_table::const_accessor const_ibs_accessor;
 typedef ibs_table::accessor ibs_accessor;
 
+typedef lb_table::const_accessor const_lb_accessor;
+typedef lb_table::accessor lb_accessor;
 // Container for storing the dependency graph
 // The vertices of his graph act as a memoization table of subproblems
 // Entries in the table are not necessarily complete, some are still running, paused, or cancelled.
@@ -135,7 +141,7 @@ public:
     adjacency_table edges;
     bound_table bounds;
     ibs_table ibs;
-
+    lb_table lb;
     Graph(void);
     ~Graph(void);
 

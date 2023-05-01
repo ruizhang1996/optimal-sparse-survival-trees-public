@@ -33,5 +33,7 @@
     "datatset_encoding": "",
 
     "metric": "L2",
-    "weights": []
+    "weights": [],
+    "warm_LB": true,
+    "path_to_labels":"churn_rf.tmp"
   }

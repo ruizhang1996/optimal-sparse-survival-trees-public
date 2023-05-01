@@ -12,7 +12,7 @@ void Dataset::load(std::istream & data_source) {
     // Normalize target column
     normalize_data();
     // Build cluster and cluster target indicating whether a point is the equivalent set
-
+    construct_clusters();
     // Compute inverse probability of censoring weights
     compute_ipcw(this -> inverse_prob_censoring_weights);
 
@@ -113,8 +113,48 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
     this -> shape = std::tuple< int, int, int >(this -> rows.size(), this -> features.size(), this -> target_values.size());
 };
 
+void Dataset::construct_clusters(void) {
+    std::vector< Bitmask > keys(height(), width());
+    for (unsigned int i = 0; i < height(); ++i) {
+        for (unsigned int j = 0; j < width(); ++j) {
+            keys[i].set(j, bool(this -> rows[i][j]));
+        }
+    }
 
-// TODO: investigate 
+    // Step 1: Construct a map from the binary features to their clusters,
+    // indicated by their indices in capture set
+    std::unordered_map< Bitmask, std::vector< int > > clusters;
+    for (int i = 0; i < height(); ++i) {
+        Bitmask const & key = keys.at(i);
+        clusters[key].emplace_back(i);
+    }
+
+    // Step 2: Convert clusters map into an array by taking the mean of each
+    // cluster, initialize unsorted order, and initialize data index to cluster
+    // index mapping
+    std::vector< std::vector<int> > cluster_indices; // points index in this cluster
+    std::vector< int > clustered_mapping(size());
+    // std::vector<double> cluster_weights;
+    int cluster_idx = 0;
+    for (auto it = clusters.begin(); it != clusters.end(); ++it) {
+        std::vector< int > const & cluster = it -> second;
+        std::vector< int > indices;
+        for (int idx : cluster) {
+            indices.emplace_back(idx);
+            clustered_mapping[idx] = cluster_idx;
+        }
+        std::sort(indices.begin(), indices.end());
+        cluster_indices.emplace_back(indices);
+        cluster_idx ++;
+    }
+
+
+
+    this -> cluster_indices = cluster_indices;
+    this -> clustered_mapping = clustered_mapping;
+
+}
+
 float Dataset::distance(Bitmask const & set, unsigned int i, unsigned int j, unsigned int id) const {
     return 0;
 }
@@ -126,7 +166,7 @@ void Dataset::target_value(Bitmask capture_set, std::string & prediction_value) 
 
 
 
-double Dataset::compute_ibs(Bitmask capture_set) const{
+double Dataset::compute_ibs(Bitmask capture_set, std::vector<int> & cumulative_death_per_target_values, std::vector<int> & num_death_per_target_values, std::vector<double> & survival_function) const{
     int max = capture_set.size();
     std::vector<double> S(target_values.size(), 1);
     int i = capture_set.scan(0, true);
@@ -134,6 +174,9 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
     unsigned int number_of_death = 0;
     unsigned int number_of_known_alive = capture_set.count();
     unsigned int number_of_sample_current_time = 0;
+//    num_death_per_target_values.resize(target_values.size(), 0);
+//    cumulative_death_per_target_values.resize(target_values.size(), 0);
+//    int cumulative_death = 0;
     while (i < max){
         int next = capture_set.scan(i + 1, true);
         number_of_death += censoring.get(i);
@@ -141,14 +184,20 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
         // if i is the last captured point
         if (next >= max){
             prod *= (1 - (float) number_of_death / (float) number_of_known_alive);
+//            num_death_per_target_values[targets_mapping[i]] = number_of_death;
+//            cumulative_death += number_of_death;
             for (int j = targets_mapping[i]; j < target_values.size(); ++j) {
                 S[j] = prod;
+//                cumulative_death_per_target_values[j] = cumulative_death;
             }
         }
         else if (targets_mapping[i] != targets_mapping[next]){
             prod *= (1 - (float) number_of_death / (float) number_of_known_alive);
+//            num_death_per_target_values[targets_mapping[i]] = number_of_death;
+//            cumulative_death += number_of_death;
             for (int j = targets_mapping[i]; j < targets_mapping[next]; ++j) {
                 S[j] = prod;
+//                cumulative_death_per_target_values[j] = cumulative_death;
             }
             number_of_known_alive -= number_of_sample_current_time;
             number_of_sample_current_time = 0;
@@ -173,7 +222,7 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
     bool calculated = false;
     while (j < max){
         for (int k = targets_mapping[prev_j]; k < targets_mapping[j]; ++k) {
-            ibs += pow(S[k] - 1, 2) * inverse_prob_censoring_weights[k] * (target_values[k + 1] - target_values[k]) * (capture_set.count() - num_included);
+            ibs += (S[k] - 1) * (S[k] - 1) * inverse_prob_censoring_weights[k] * (target_values[k + 1] - target_values[k]) * (capture_set.count() - num_included);
         }
         if (targets_mapping[prev_j] != targets_mapping[j]) calculated = false;
         if (censoring.get(j)){
@@ -182,7 +231,7 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
             } else{
                 double tmp = 0.0;
                 for (int k = targets_mapping[j]; k < target_values.size() - 1; ++k) {
-                    tmp += pow(S[k], 2) * inverse_prob_censoring_weights[targets_mapping[j]] * (target_values[k + 1] - target_values[k]);
+                    tmp += S[k] * S[k] * inverse_prob_censoring_weights[targets_mapping[j]] * (target_values[k + 1] - target_values[k]);
                 }
                 ibs += tmp;
                 prev_ibs_right = tmp;
@@ -196,11 +245,67 @@ double Dataset::compute_ibs(Bitmask capture_set) const{
 //    if (std::abs(ibs - new_ibs) >= std::numeric_limits<float>::epsilon()){
 //        std::cout << ibs << ", " << new_ibs << std::endl;
 //    }
-
+    survival_function = S;
     return ibs / size();
 }
-double Dataset::compute_ibs(std::vector< int > capture_set_idx) const{
-    return 0;
+double Dataset::compute_lowerbound(Bitmask capture_set, std::vector<int> cumulative_death_per_target_values, std::vector<int> num_death_per_target_values, std::vector<double> S) const{
+    int max = capture_set.size();
+
+
+    double res = 0;
+//    std::vector< int > count(cluster_indices.size());
+//    for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
+//        std::vector<int> cluster = cluster_indices[clustered_mapping[i]];
+//        if (cluster.size() > 1 && count[clustered_mapping[i]] == 0) {
+//            // start compute lower bound for this equivalent set
+//            std::vector<double> S_low;
+//            std::vector<double> S_high;
+//            int S_idx = 0; // index to compute S
+//            double prod = 1.0;
+//            double prod_high = 1.0;
+//            for (int j = 0; j < cluster.size(); ++j) {
+//                while (S_idx < targets_mapping[cluster[j]]){
+//                    int cumulative_before;
+//                    int cumulative_total;
+//                    if (targets_mapping[cluster[j]] > 0){ cumulative_total = cumulative_death_per_target_values[targets_mapping[cluster[j]] - 1];}
+//                    else {cumulative_total = 0;}
+//                    if (S_idx > 0) {cumulative_before = cumulative_death_per_target_values[S_idx - 1];}
+//                    else {cumulative_before = 0;}
+//                    prod *= (1 - num_death_per_target_values[S_idx] / (cumulative_total + (int) cluster.size() - j - cumulative_before));
+//                    S_low.emplace_back(prod);
+//                    S_high.emplace_back(prod_high);
+//                    S_idx ++;
+//                }
+//                // now S_idx == targets_mapping[cluster[j]]:
+//                if (S_idx == targets_mapping[cluster[j]]){
+//                    prod *= (1 - num_death_per_target_values[S_idx] / ((int) cluster.size() - j + num_death_per_target_values[S_idx]));
+//                    S_low.emplace_back(prod);
+//                    prod_high += (1 - 1/ (size() - cluster[j]));
+//                    S_high.emplace_back(prod_high);
+//                    S_idx++;
+//                }
+//            }
+//            for (int j = 0; j < cluster.size(); ++j) {
+//
+//                int S_high_idx = targets_mapping[cluster[0]];
+//                while (S_high_idx < targets_mapping[cluster[j]]){
+//                    res += pow(S_high[S_high_idx] - 1, 2) * inverse_prob_censoring_weights[S_high_idx] * (target_values[S_high_idx + 1] - target_values[S_high_idx]);
+//                    S_high_idx ++;
+//                }
+//
+//                if (censoring.get(cluster[j])){
+//                    int S_low_idx = targets_mapping[cluster[j]];
+//                    while (S_low_idx < targets_mapping[cluster[cluster.size() - 1] - 1]){
+//                        res += pow(S_low[S_low_idx], 2) * inverse_prob_censoring_weights[S_low_idx] * (target_values[S_low_idx + 1] - target_values[S_low_idx]);
+//                        S_low_idx ++;
+//                    }
+//                }
+//            }
+//        }
+//        count[clustered_mapping[i]]++;
+//    }
+
+    return res / size();
 }
 void Dataset::normalize_data() {
     // largest target
@@ -247,7 +352,7 @@ void Dataset::subset(unsigned int feature_index, Bitmask & negative, Bitmask & p
 // 3. Check equiv (points lower bound + 2 * reg) before using Kmeans to
 //    determine if we need more split as it has a way lower overhead
 
-void Dataset::summary(Bitmask const & capture_set, float & info, float & potential, float & min_loss, float & max_loss, unsigned int & target_index, unsigned int id) const {
+void Dataset::summary(Bitmask const & capture_set, float & info, float & potential, float & min_loss, float & guaranteed_min_loss, float & max_loss, unsigned int & target_index, unsigned int id) const {
     summary_calls++;
     Bitmask & buffer = State::locals[id].columns[0];
     //unsigned int * distribution; // The frequencies of each class
@@ -269,30 +374,51 @@ void Dataset::summary(Bitmask const & capture_set, float & info, float & potenti
     // assert(min_cost + Configuration::regularization < equivalent_point_loss_1 || equivalent_point_loss_1 < equivalent_point_loss);
     // equivalent_point_loss = 2 * Configuration::regularization + compute_equivalent_points_lower_bound(capture_set);
     ibs_accessor stored_ibs_accessor;
+    lb_accessor stored_lb_accessor;
+    guaranteed_min_loss = 0;
+
     if (State::graph.ibs.find(stored_ibs_accessor, capture_set)) {
         max_loss = stored_ibs_accessor->second;
+        if (Configuration::reference_LB){
+            State::graph.lb.find(stored_lb_accessor, capture_set);
+            min_loss = stored_lb_accessor -> second;
+            stored_lb_accessor.release();
+        } else{
+            min_loss = guaranteed_min_loss;
+        }
         stored_ibs_accessor.release();
     } else {
-        max_loss = compute_ibs(capture_set);
+        std::vector<int> num_death_per_target_values;
+        std::vector<int> cumulative_death_per_target_values;
+        std::vector<double> S;
+        max_loss = compute_ibs(capture_set, cumulative_death_per_target_values, num_death_per_target_values, S);
+//        min_loss = compute_lowerbound(capture_set, cumulative_death_per_target_values, num_death_per_target_values, S);
+//        std::cout << max_loss << min_loss <<std::endl;
+        if (Configuration::reference_LB){
+            //calculate reference model's error on this capture set, use as estimate for min_loss (possible overestimate)
+            float reference_model_loss = 0.0;
+            int max = capture_set.size();
+            for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
+                reference_model_loss += Reference::labels[i];
+            }
+            min_loss = reference_model_loss;
+        } else {
+            // when not using a reference model, we do not want min_loss to be an overestimate
+            // so we set min_loss to match guaranteed_min_loss
+            min_loss = guaranteed_min_loss;
+        }
         auto new_ibs = std::make_pair(capture_set, max_loss);
         State::graph.ibs.insert(new_ibs);
+        if (Configuration::reference_LB){
+            auto new_lb = std::make_pair(capture_set, min_loss);
+            State::graph.lb.insert(new_lb);
+        }
+
         compute_ibs_calls++;
+
     }
 
-    // float equivalent_point_loss_1 = 2 * Configuration::regularization + compute_equivalent_points_lower_bound(capture_set);
-    // float max_loss_1 = min_cost + Configuration::regularization;
-    // float diff = equivalent_point_loss - equivalent_point_loss_1;
-
-    // float gap = max_loss_1 - equivalent_point_loss_1;
-    // if (gap > 0.0001) {
-    //     float percent = diff / gap;
-    //     summary_calls_has_gap++;
-    //     cum_percent += percent;
-        
-    // }
-
-    min_loss = 0;
-    potential = max_loss;
+    potential = max_loss - min_loss;
     info = information;
     target_index = cost_minimizer;
 }

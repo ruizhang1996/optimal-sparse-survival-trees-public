@@ -7,17 +7,18 @@ Task::Task(Bitmask const & capture_set, Bitmask const & feature_set, unsigned in
     this -> _feature_set = feature_set;
     this -> _support = (float)(capture_set.count()) / (float)(State::dataset.height());
     float const regularization = Configuration::regularization;
-    bool terminal = (this -> _capture_set.count() <= 1) || (this -> _feature_set.empty());
+    bool terminal = (this -> _capture_set.count() < 2 * Configuration::minimum_captured_points) || (this -> _feature_set.empty());
 
-    float potential, min_loss, max_loss;
+    float potential, min_loss,guaranteed_min_loss, max_loss;
     unsigned int target_index;
     // Careful, the following method modifies capture_set
-    State::dataset.summary(this -> _capture_set, this -> _information, potential, min_loss, max_loss, target_index, id);
+    State::dataset.summary(this -> _capture_set, this -> _information, potential, min_loss, guaranteed_min_loss, max_loss, target_index, id);
 
     this -> _base_objective = max_loss + regularization;
     // Add lambda because we know this has at least 2 leaves
     float const lowerbound = std::min(this -> _base_objective, min_loss + 2 * Configuration::regularization);
     float const upperbound = this -> _base_objective;
+    this -> _guaranteed_lowerbound = std::min(this -> _base_objective, guaranteed_min_loss + 2 * Configuration::regularization);
     if (
         terminal
         || potential <= Configuration::regularization
@@ -67,6 +68,9 @@ void Task::scope(float new_scope) {
     new_scope = std::max((float)(0.0), new_scope);
     this -> _upperscope = this -> _upperscope == std::numeric_limits<float>::max() ? new_scope : std::max(this -> _upperscope, new_scope);
     this -> _lowerscope = this -> _lowerscope == -std::numeric_limits<float>::max() ? new_scope : std::min(this -> _lowerscope, new_scope);
+}
+double Task::guaranteed_lowerbound(void) {
+    return (Configuration::reference_LB)? this -> _guaranteed_lowerbound : this -> _lowerbound;
 }
 
 void Task::prune_feature(unsigned int index) { this -> _feature_set.set(index, false); }
@@ -217,8 +221,8 @@ void Task::send_explorers(float new_scope, unsigned int id) {
                 send_explorer(left, exploration_boundary - right.base_objective(), -(j + 1), id);
                 send_explorer(right, exploration_boundary - left.base_objective(), (j + 1), id);
             } else {
-                send_explorer(left, exploration_boundary - right.lowerbound(), -(j + 1), id);
-                send_explorer(right, exploration_boundary - left.lowerbound(), (j + 1), id);
+                send_explorer(left, exploration_boundary - right.guaranteed_lowerbound(), -(j + 1), id);
+                send_explorer(right, exploration_boundary - left.guaranteed_lowerbound(), (j + 1), id);
             }
         }
     }
