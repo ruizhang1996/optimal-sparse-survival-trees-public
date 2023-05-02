@@ -43,6 +43,7 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
     this -> feature_rows.resize(number_of_samples, number_of_binary_features);
     // Sort samples based on target if L1 loss
     std::vector<double> targets = encoder.read_numerical_targets();
+    std::vector<double> labels = Reference::labels;
     this -> targets = targets;
     auto compi = [targets](size_t i, size_t j) {
         return targets[i] < targets[j];
@@ -55,14 +56,17 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
     std::vector<double> sorted_targets(number_of_samples);
     // std::vector<double> sorted_weights(number_of_samples);
     std::vector<Bitmask> sorted_rows(number_of_samples);
+    std::vector<double> sorted_labels(number_of_samples);
     for (int i = 0; i < target_order.size(); i++) {
         sorted_targets[i] = targets[target_order[i]];
         // sorted_weights[i] = weights[target_order[i]];
         sorted_rows[i] = rows[target_order[i]];
+        sorted_labels[i] = Reference::labels[target_order[i]];
     }
     this -> targets = sorted_targets;
     // this -> weights = sorted_weights;
     this -> rows = sorted_rows;
+    Reference::labels = sorted_labels;
     // unique target values
     std::set< std::string > target_string_values = this -> encoder.get_target_values();
     for (auto it = target_string_values.begin(); it != target_string_values.end(); ++it){
@@ -389,7 +393,7 @@ void Dataset::summary(Bitmask const & capture_set, float & info, float & potenti
 //        std::cout << max_loss << min_loss <<std::endl;
         if (Configuration::reference_LB){
             //calculate reference model's error on this capture set, use as estimate for min_loss (possible overestimate)
-            float reference_model_loss = 0.0;
+            double reference_model_loss = 0.0;
             int max = capture_set.size();
             for (int i = capture_set.scan(0, true); i < max; i = capture_set.scan(i + 1, true)) {
                 reference_model_loss += Reference::labels[i];

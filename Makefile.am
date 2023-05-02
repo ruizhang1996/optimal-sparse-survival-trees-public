@@ -134,6 +134,8 @@ gosdt_test_SOURCES = \
 	test/test_consistency.hpp \
 	test/test.cpp \
 	test/test.hpp \
+	src/reference.cpp \
+    src/reference.hpp \
 	include/ckmeans/Ckmeans.1d.dp.cpp \
 	include/ckmeans/dynamic_prog.cpp \
 	include/ckmeans/fill_SMAWK.cpp \
