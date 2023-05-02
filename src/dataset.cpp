@@ -166,7 +166,7 @@ void Dataset::target_value(Bitmask capture_set, std::string & prediction_value) 
 
 
 
-double Dataset::compute_ibs(Bitmask capture_set, std::vector<int> & cumulative_death_per_target_values, std::vector<int> & num_death_per_target_values, std::vector<double> & survival_function) const{
+double Dataset::compute_ibs(Bitmask capture_set) const{
     int max = capture_set.size();
     std::vector<double> S(target_values.size(), 1);
     int i = capture_set.scan(0, true);
@@ -242,10 +242,6 @@ double Dataset::compute_ibs(Bitmask capture_set, std::vector<int> & cumulative_d
         prev_j = j;
         j = capture_set.scan(j + 1, true);
     }
-//    if (std::abs(ibs - new_ibs) >= std::numeric_limits<float>::epsilon()){
-//        std::cout << ibs << ", " << new_ibs << std::endl;
-//    }
-    survival_function = S;
     return ibs / size();
 }
 double Dataset::compute_lowerbound(Bitmask capture_set, std::vector<int> cumulative_death_per_target_values, std::vector<int> num_death_per_target_values, std::vector<double> S) const{
@@ -388,10 +384,7 @@ void Dataset::summary(Bitmask const & capture_set, float & info, float & potenti
         }
         stored_ibs_accessor.release();
     } else {
-        std::vector<int> num_death_per_target_values;
-        std::vector<int> cumulative_death_per_target_values;
-        std::vector<double> S;
-        max_loss = compute_ibs(capture_set, cumulative_death_per_target_values, num_death_per_target_values, S);
+        max_loss = compute_ibs(capture_set);
 //        min_loss = compute_lowerbound(capture_set, cumulative_death_per_target_values, num_death_per_target_values, S);
 //        std::cout << max_loss << min_loss <<std::endl;
         if (Configuration::reference_LB){

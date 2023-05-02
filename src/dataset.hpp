@@ -137,7 +137,7 @@ private:
     void normalize_data(void);
 
 
-    double compute_ibs(Bitmask capture_set, std::vector<int> & cumulative_death_per_target_values, std::vector<int> & num_death_per_target_values, std::vector<double> & survival_function) const;
+    double compute_ibs(Bitmask capture_set) const;
 
     void compute_ipcw(std::vector<double> &ipcw);
 
