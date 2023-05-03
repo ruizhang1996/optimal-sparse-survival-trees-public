@@ -43,7 +43,10 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
     this -> feature_rows.resize(number_of_samples, number_of_binary_features);
     // Sort samples based on target if L1 loss
     std::vector<double> targets = encoder.read_numerical_targets();
-    std::vector<double> labels = Reference::labels;
+    std::vector<double> labels;
+    if (Configuration::reference_LB){
+        labels = Reference::labels;
+    }
     this -> targets = targets;
     auto compi = [targets](size_t i, size_t j) {
         return targets[i] < targets[j];
@@ -61,12 +64,16 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
         sorted_targets[i] = targets[target_order[i]];
         // sorted_weights[i] = weights[target_order[i]];
         sorted_rows[i] = rows[target_order[i]];
-        sorted_labels[i] = Reference::labels[target_order[i]];
+        if (Configuration::reference_LB) {
+            sorted_labels[i] = labels[target_order[i]];
+        }
+    }
+    if (Configuration::reference_LB){
+        Reference::labels = sorted_labels;
     }
     this -> targets = sorted_targets;
     // this -> weights = sorted_weights;
     this -> rows = sorted_rows;
-    Reference::labels = sorted_labels;
     // unique target values
     std::set< std::string > target_string_values = this -> encoder.get_target_values();
     for (auto it = target_string_values.begin(); it != target_string_values.end(); ++it){
