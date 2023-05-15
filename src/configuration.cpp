@@ -30,6 +30,7 @@ bool Configuration::feature_transform = true;
 bool Configuration::rule_list = false;
 bool Configuration::non_binary = false;
 bool Configuration::k_cluster = true;
+bool Configuration::bucketize = false;
 
 std::string Configuration::costs = "";
 std::string Configuration::model = "";
@@ -92,7 +93,7 @@ void Configuration::configure(json config) {
     if (config.contains("rule_list")) { Configuration::rule_list = config["rule_list"]; }
     if (config.contains("non_binary")) { Configuration::non_binary = config["non_binary"]; }
     if (config.contains("k_cluster")){Configuration::k_cluster = config["k_cluster"];}
-
+    if (config.contains("bucketize")){Configuration::bucketize = config["bucketize"];}
     if (config.contains("costs")) { Configuration::costs = config["costs"]; }
     if (config.contains("model")) { Configuration::model = config["model"]; }
     if (config.contains("timing")) { Configuration::timing = config["timing"]; }

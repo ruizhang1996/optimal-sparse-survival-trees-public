@@ -80,7 +80,7 @@ void Dataset::construct_bitmasks(std::istream & data_source) {
         this -> target_values.emplace_back(atof((*it).c_str()));
     }
     std::sort(target_values.begin(), target_values.end());
-    if ( (float) target_values.size() / this -> targets.size() > 0.1){
+    if ( Configuration::bucketize){
         unsigned int num_bucket;
         if (Configuration::number_of_buckets > 0) {
             num_bucket = Configuration::number_of_buckets;

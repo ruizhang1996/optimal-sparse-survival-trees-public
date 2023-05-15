@@ -47,6 +47,7 @@ public:
     static bool rule_list; // Flag for enabling rule-list constraints on models
     static bool non_binary; // Flag for enabling non-binary encoding
     static bool k_cluster;
+    static bool bucketize;
 
     static std::string costs; // Path to file containing cost matrix
     static std::string model; // Path to file used to store the extracted models

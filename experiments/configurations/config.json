@@ -7,17 +7,18 @@
     "continuous_feature_exchange": false,
     "rule_list": false,
     "k_cluster": false,
-  
+    "bucketize": false,
+
     "diagnostics": true,
     "verbose": true,
   
-    "regularization": 0.01,
+    "regularization": 0.0025,
     "uncertainty_tolerance": 0.0,
     "upperbound": 0.0,
-    "depth_budget": 6,
-    "minimum_captured_points": 7,
+    "depth_budget": 5,
+    "minimum_captured_points": 1,
 
-    "model_limit": 1,
+    "model_limit": 100,
     "precision_limit": 0,
     "stack_limit": 0,
     "tile_limit": 0,
@@ -34,6 +35,6 @@
 
     "metric": "L2",
     "weights": [],
-    "warm_LB": true,
-    "path_to_labels":"churn_rf.tmp"
+    "warm_LB": false,
+    "path_to_labels":"aids_rf100.tmp"
   }
