@@ -184,7 +184,8 @@ The configuration file is a JSON object and has the following structure and defa
 **warm_LB**
 - Values: true or false
 - Description: Enables usage of reference model lower bound (user needs to specify the path to a fitted reference model, see parameter **path_to_labels**)
-- 
+- **python/train_reference.py** shows the way to train reference models and the format to store it into file.
+
 **bucketize**
 - Values: true or false
 - Description: Enables bucketizing time points before training to avoid overfitting and speed up optimization. (We encourage set this to true when BOTH the number of samples is and the number of unique time points are large.)
