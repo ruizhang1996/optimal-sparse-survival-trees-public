@@ -68,7 +68,7 @@ gosdt dataset.csv config.json
 cat dataset.csv | gosdt config.json >> output.json
 ```
 
-For examples of dataset files, refer to `experiments/datasets/churn/churn.csv`.
+For examples of dataset files, refer to `experiments/datasets/aids/aids.csv`.
 For an example configuration file, refer to `experiments/configurations/config.json`.
 For documentation on the configuration file, refer to [**Dependency Installation**](/doc/configuration.md)
 
@@ -109,7 +109,7 @@ import pandas as pd
 import numpy as np
 from model.gosdt import GOSDT
 
-dataframe = pd.DataFrame(pd.read_csv("experiments/datasets/churn/churn.csv"))
+dataframe = pd.DataFrame(pd.read_csv("experiments/datasets/aids/aids.csv"))
 
 X = dataframe[dataframe.columns[:-1]]
 y = dataframe[dataframe.columns[-1:]]
