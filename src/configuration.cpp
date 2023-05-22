@@ -14,7 +14,7 @@ unsigned int Configuration::model_limit = 1;
 bool Configuration::verbose = false;
 bool Configuration::diagnostics = false;
 
-unsigned int Configuration::minimum_captured_points = 1;
+unsigned int Configuration::minimum_captured_points = 7;
 unsigned int Configuration::number_of_buckets = 0;
 unsigned char Configuration::depth_budget = 0;
 bool Configuration::reference_LB = false;

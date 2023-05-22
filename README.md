@@ -150,8 +150,9 @@ There is a default configuration which will be used if no such file is specified
 The configuration file is a JSON object and has the following structure and default values:
 ```json
 {
-  "k_cluster": true,
-
+  "bucketize": false,
+  "number_of_buckets": 0,
+  
   "diagnostics": false,
   "verbose": true,
 
@@ -159,7 +160,8 @@ The configuration file is a JSON object and has the following structure and defa
   "depth_budget": 5,
   "uncertainty_tolerance": 0.0,
   "upperbound": 0.0,
-
+  "minimum_captured_points": 7,
+  
   "model_limit": 10000,
   "precision_limit": 0,
   "stack_limit": 0,
@@ -172,23 +174,28 @@ The configuration file is a JSON object and has the following structure and defa
   "timing": "",
   "trace": "",
   "tree": "",
-  "datatset_encoding": ""
+  "datatset_encoding": "",
+  "warm_LB": false,
+  "path_to_labels": ""
 }
 ```
 
 ### Flags
-
-**k_cluster**
+**warm_LB**
 - Values: true or false
-- Description: Enables usage of the k-Means Equivalent Points Bound
+- Description: Enables usage of reference model lower bound (user needs to specify the path to a fitted reference model, see parameter **path_to_labels**)
+- 
+**bucketize**
+- Values: true or false
+- Description: Enables bucketizing time points before training to avoid overfitting and speed up optimization. (We encourage set this to true when BOTH the number of samples is and the number of unique time points are large.)
 
 **diagnostics**
 - Values: true or false
-- Description: Enables printing of diagnostic trace when an error is encountered to standard output
+- Description: Enables printing of diagnostic trace when an error is encountered to standard output.
 
 **verbose**
 - Values: true or false
-- Description: Enables printing of configuration, progress, and results to standard output
+- Description: Enables printing of configuration, progress, and results to standard output.
 
 ### Tuners
 
@@ -211,6 +218,13 @@ The configuration file is a JSON object and has the following structure and defa
 - Values: Decimal within range [0,1]
 - Description: Used to limit the risk of model search space. This can be used to ensure that no models are produced if even the optimal model exceeds a desired maximum risk. This also accelerates learning if the upperbound is taken from the risk of a nearly optimal model.
 
+**minimum_captured_points**
+- Values: Decimal within range [1,N]
+- Description: The minimum number of points required in each leaf node.
+
+**number_of_buckets**
+- Values: Decimal within range [1,N'], where N' is the number of unique time points in the dataset.
+- Description: The number of buckets to use if **bucketize** is set to true.
 ### Limits
 
 **model_limit**
@@ -270,20 +284,9 @@ The configuration file is a JSON object and has the following structure and defa
 - Description: snapshots used for trace-tree visualization will be stored in this directory
 - Special Case: When set to empty string, no snapshots are stored.
 
-## Optimizing Different Loss Functions
-
-OSRT currently supports weighted L1 and L2 losses.
-
-**metric**
-- Values: string of `L1` or `L2`
-- Description: specify the loss that OSRT is using
-
-**weights**
-- Values: array of decimal within [0, 1] of length of the dataset size
-- Description: specify the weight for the given loss
-- Special Case: When set to empty array, all data points are weighted equally.
-
-
+**path_to_labels**
+- Values: string representing a path to a file.
+- Description: A file contains the IBS loss from a reference model. The format is a N by 1 vector, where each element represents the proportion of IBS loss contributed by each individual sample in the reference model. (see example file **churn_reference.tmp** under the root directory.)
 ---
 
 # Development
@@ -368,17 +371,4 @@ These currently support interface with **brew** and **apt**
 
 ---
 
-# FAQs
-_Note we will work on this and following sections later_
-
-If you run into any issues, consult the [**FAQs**](/doc/faqs.md) first.
-
 ---
-
-# License
-
-Licensing information
-
----
-
-**Inquiries**

@@ -8,15 +8,15 @@
     "rule_list": false,
     "k_cluster": false,
     "bucketize": false,
-
+    "number_of_buckets": 0,
     "diagnostics": true,
     "verbose": true,
   
-    "regularization": 0.0025,
+    "regularization": 0.01,
     "uncertainty_tolerance": 0.0,
     "upperbound": 0.0,
     "depth_budget": 5,
-    "minimum_captured_points": 1,
+    "minimum_captured_points": 7,
 
     "model_limit": 100,
     "precision_limit": 0,
@@ -36,5 +36,5 @@
     "metric": "L2",
     "weights": [],
     "warm_LB": false,
-    "path_to_labels":"aids_rf100.tmp"
+    "path_to_labels": ""
   }
