@@ -70,6 +70,7 @@ cat dataset.csv | gosdt config.json >> output.json
 
 For examples of dataset files, refer to `experiments/datasets/aids/aids.csv`.
 For an example configuration file, refer to `experiments/configurations/config.json`.
+For am example of creating reference model file, refer to `python/train_reference.py`
 For documentation on the configuration file, refer to [**Dependency Installation**](/doc/configuration.md)
 
 ## As a Python Library with C++ Extensions
