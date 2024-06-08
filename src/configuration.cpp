@@ -2,7 +2,7 @@
 #include "configuration.hpp"
 
 float Configuration::uncertainty_tolerance = 0.0;
-float Configuration::regularization = 0.05;
+float Configuration::regularization = 0.01;
 float Configuration::upperbound = 0.0;
 
 unsigned int Configuration::time_limit = 0;
@@ -15,8 +15,9 @@ bool Configuration::verbose = false;
 bool Configuration::diagnostics = false;
 
 unsigned int Configuration::minimum_captured_points = 7;
+bool Configuration::bucketize = false;
 unsigned int Configuration::number_of_buckets = 0;
-unsigned char Configuration::depth_budget = 0;
+unsigned char Configuration::depth_budget = 5;
 bool Configuration::reference_LB = false;
 std::string Configuration::path_to_labels = "";
 
@@ -30,7 +31,6 @@ bool Configuration::feature_transform = true;
 bool Configuration::rule_list = false;
 bool Configuration::non_binary = false;
 bool Configuration::k_cluster = true;
-bool Configuration::bucketize = false;
 
 std::string Configuration::costs = "";
 std::string Configuration::model = "";
@@ -40,7 +40,7 @@ std::string Configuration::tree = "";
 std::string Configuration::profile = "";
 
 char Configuration::metric = Configuration::l2_loss;
-std::vector<double> Configuration::weights;
+std::vector<float> Configuration::weights;
 
 void Configuration::configure(std::istream & source) {
     json config;
@@ -63,6 +63,7 @@ void Configuration::configure(json config) {
     if (config.contains("diagnostics")) { Configuration::diagnostics = config["diagnostics"]; }
 
     if (config.contains("minimum_captured_points")) { Configuration::minimum_captured_points = config["minimum_captured_points"]; }
+    if (config.contains("bucketize")){Configuration::bucketize = config["bucketize"];}
     if (config.contains("number_of_buckets")) {Configuration::number_of_buckets = config["number_of_buckets"];}
     if (config.contains("depth_budget")) { Configuration::depth_budget = config["depth_budget"]; }
     if (config.contains("reference_LB")) {
@@ -93,7 +94,7 @@ void Configuration::configure(json config) {
     if (config.contains("rule_list")) { Configuration::rule_list = config["rule_list"]; }
     if (config.contains("non_binary")) { Configuration::non_binary = config["non_binary"]; }
     if (config.contains("k_cluster")){Configuration::k_cluster = config["k_cluster"];}
-    if (config.contains("bucketize")){Configuration::bucketize = config["bucketize"];}
+
     if (config.contains("costs")) { Configuration::costs = config["costs"]; }
     if (config.contains("model")) { Configuration::model = config["model"]; }
     if (config.contains("timing")) { Configuration::timing = config["timing"]; }
@@ -110,7 +111,7 @@ void Configuration::configure(json config) {
             std::cout << "Unrecognized metric" << std::endl;
         }
     }
-    if (config.contains("weights")) {Configuration::weights = config["weights"].get<std::vector<double>>();}
+    if (config.contains("weights")) {Configuration::weights = config["weights"].get<std::vector<float>>();}
 }
 
 std::string Configuration::to_string(unsigned int spacing) {
@@ -130,6 +131,7 @@ std::string Configuration::to_string(unsigned int spacing) {
 
     obj["depth_budget"] = Configuration::depth_budget;
     obj["minimum_captured_points"] = Configuration::minimum_captured_points;
+    obj["bucketize"] = Configuration::bucketize;
     obj["number_of_buckets"] = Configuration::number_of_buckets;
 
     obj["balance"] = Configuration::balance;

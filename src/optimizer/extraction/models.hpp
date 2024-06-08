@@ -5,39 +5,18 @@ void Optimizer::models(std::unordered_set< Model > & results) {
     models(this -> root, local_results);
     std::cout << "Summary calls: " << State::dataset.summary_calls << std::endl;
     std::cout << "IBS calls: " << State::dataset.compute_ibs_calls << std::endl;
-    // std::cout << "Average percent: " << State::dataset.cum_percent / State::dataset.summary_calls_has_gap << std::endl;
-    // std::cout << "Local Size: " << local_results.size() << std::endl;
-    // std::cout << "Result Size: " << results.size() << std::endl;
-    // Copy into final results
+    
     for (auto iterator = local_results.begin(); iterator != local_results.end(); ++iterator) {
-
-        // std::pair< std::unordered_set<Model>::iterator, bool > insertion = results.insert(Model());
-        // * (insertion.first) = (** iterator);
-        // Model * model = new Model(**iterator);
-
-        // std::string serialization;
-        // (**iterator).serialize(serialization, 2);
-        // std::cout << serialization << std::endl;
-
         results.insert(**iterator);
     }
-    // std::cout << "Local Size: " << local_results.size() << std::endl;
-    // std::cout << "Result Size: " << results.size() << std::endl;
 }
 
 void Optimizer::models(key_type const & identifier, std::unordered_set< Model *, std::hash< Model * >, std::equal_to< Model * > > & results, bool leaf) {
     vertex_accessor task_accessor;
     if (State::graph.vertices.find(task_accessor, identifier) == false) { return; }
     Task & task = task_accessor -> second;
-    // std::cout << "Base Condition: " << task.base_objective() << " <= " << task.upperbound() << " = " << (int)(task.base_objective() <= task.upperbound()) << std::endl;
-
-    // std::cout << "Capture: " << task.capture_set().to_string() << std::endl;
+    
     if (task.base_objective() <= task.upperbound() + std::numeric_limits<float>::epsilon()) {
-        // || (Configuration::rule_list && task.capture_set().count() != task.capture_set().size())) {
-        // std::cout << "Stump" << std::endl;
-        // std::shared_ptr<key_type> stump(new Tile(set));
-        // Model stump_key(stump_set); // shallow variant
-        // Model * stump_address = new Model(stump_set);
         Model * model = new Model(std::shared_ptr<Bitmask>(new Bitmask(task.capture_set())));
         model -> identify(identifier);
         
@@ -49,11 +28,10 @@ void Optimizer::models(key_type const & identifier, std::unordered_set< Model *,
     if (!State::graph.bounds.find(bounds, identifier)) { return; }
 
     for (bound_iterator iterator = bounds -> second.begin(); iterator != bounds -> second.end(); ++iterator) {
-        // std::cout << "Bound" << std::endl;
 
         if (std::get<2>(* iterator) > task.upperbound() + std::numeric_limits<float>::epsilon()) { continue; }
         int feature = std::get<0>(* iterator);
-        // std::cout << "Feature: " << feature << std::endl;
+        
         std::unordered_set< Model * > negatives;
         std::unordered_set< Model * > positives;
         bool ready = true;

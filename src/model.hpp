@@ -106,7 +106,7 @@ private:
     float _loss; // loss incurred by this leaf
     float _complexity; // complexity penalty incurred by this leaf
     std::shared_ptr< Bitmask > capture_set; // indicator specifying the points captured by this leaf
-    static unsigned int leaf_num;
+    static int leaf_num;
 };
 
 namespace std {

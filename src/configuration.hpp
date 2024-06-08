@@ -31,6 +31,7 @@ public:
     static bool diagnostics; // Flag for printing diagnosis to standard output if a bug is detected
 
     static unsigned int minimum_captured_points; // The minimum captured points for any leaf
+    static bool bucketize; // Flag for bucketization of time threshold
     static unsigned int number_of_buckets; // Bucketize targets into number_of_buckets buckets
     static unsigned char depth_budget; // The maximum tree depth for solutions, counting a tree with just the root node as depth 1. 0 means unlimited.
     static bool reference_LB; // Flag for using a vector of misclassifications from another (reference) model to lower bound our own misclassifications
@@ -47,7 +48,6 @@ public:
     static bool rule_list; // Flag for enabling rule-list constraints on models
     static bool non_binary; // Flag for enabling non-binary encoding
     static bool k_cluster;
-    static bool bucketize;
 
     static std::string costs; // Path to file containing cost matrix
     static std::string model; // Path to file used to store the extracted models
@@ -57,7 +57,7 @@ public:
     static std::string profile; // Path to file used to log runtime statistics
 
     static char metric;
-    static std::vector<double> weights;
+    static std::vector<float> weights;
 };
 
 #endif

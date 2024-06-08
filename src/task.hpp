@@ -15,10 +15,8 @@ class Task;
 #include "bitmask.hpp"
 #include "configuration.hpp"
 #include "dataset.hpp"
-#include "graph.hpp"
 #include "integrity_violation.hpp"
 #include "queue.hpp"
-#include "state.hpp"
 #include "types.hpp"
 
 class Task {

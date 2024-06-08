@@ -5,23 +5,10 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/vector_proxy.hpp>
-#include <boost/numeric/ublas/vector_expression.hpp>
 #include <tbb/scalable_allocator.h>
-#include <simdpp/simd.h>
-
-#ifdef INCLUDE_OPENCL
-#include <opencl/cl.hpp>
-#endif
 
 #include "integrity_violation.hpp"
 #include "bitmask.hpp"
-
-// @note: vector type used for representing GPU floating point vector
-typedef boost::numeric::ublas::vector< float > blasvector;
-// @note: vector type used for representing GPU mask
-typedef boost::numeric::ublas::vector< bitblock > blasmask;
 
 // Container used to store prefix sums of vectors which help accelerate our calculations
 // multiple vectors are stored in this container so that ranges don't need to be recomputed for each vector
@@ -77,20 +64,5 @@ private:
     // @param source: The original vector of floats used in computation
     // @modifies prefixes: writes the prefix sums into this vector
     void build_prefixes(std::vector< std::vector< float > > const & source, std::vector< std::vector< float > > & prefixes);
-#ifdef INCLUDE_OPENCL
-    static cl::Device device;
-    static cl::Platform platform;
-    static cl::Context context;
-    static cl::Program program;
-    static cl::CommandQueue queue;
-    static unsigned int group_size;
-
-    cl::Buffer data_buffer;
-
-    void initialize_driver(void);
-
-    void set_platform(int index = 0);
-    void set_device(cl::Platform platform, int index, bool display = false);
-#endif
 };
 #endif

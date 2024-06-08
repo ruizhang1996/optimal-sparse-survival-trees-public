@@ -2,7 +2,7 @@
 #include <functional>
 #include <vector>
 
-std::vector<double> Reference::labels = std::vector<double>();
+std::vector<float> Reference::labels = std::vector<float>();
 
 void Reference::initialize_labels(std::istream & labels){
     //read loss
@@ -11,8 +11,8 @@ void Reference::initialize_labels(std::istream & labels){
 
 };
 
-void Reference::normalize_labels(double loss_normalizer) {
-    std::vector<double> &labels = Reference::labels;
+void Reference::normalize_labels(float loss_normalizer) {
+    std::vector<float> &labels = Reference::labels;
     for (int i = 0; i < labels.size(); i++) {
         labels[i] = labels[i] / loss_normalizer;
     }

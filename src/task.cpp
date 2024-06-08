@@ -1,4 +1,6 @@
 #include "task.hpp"
+#include "graph.hpp"
+#include "state.hpp"
 
 Task::Task(void) {}
 
@@ -23,9 +25,6 @@ Task::Task(Bitmask const & capture_set, Bitmask const & feature_set, unsigned in
         terminal
         || potential <= Configuration::regularization
         || (Configuration::depth_budget != 0 && capture_set.get_depth_budget() == 1)
-        // || max_loss - min_obj < regularization // Accuracy
-        // || potential < 2 * regularization // Leaf Support
-        // || terminal
     ) {
         // Node is provably not an internal node of any optimal tree
         this -> _lowerbound = this -> _base_objective;

@@ -1,6 +1,6 @@
 #include "model.hpp"
 #include "dataset.hpp"
-unsigned int Model::leaf_num = 0;
+int Model::leaf_num = 0;
 
 Model::Model(void) {}
 
@@ -11,7 +11,6 @@ Model::Model(std::shared_ptr<Bitmask> capture_set) {
     float info, potential, min_loss, guaranteed_min_loss,max_loss;
     unsigned int target_index;
     State::dataset.summary(* capture_set, info, potential, min_loss,guaranteed_min_loss, max_loss, target_index, 0);
-    //State::dataset.target_value(* capture_set, prediction_value);
     State::dataset.encoder.header(prediction_name);
     State::dataset.encoder.target_type(prediction_type);
     this -> binary_target = target_index;
@@ -249,7 +248,7 @@ void Model::to_json(json & node) const {
 
 void Model::_to_json(json & node) const {
     if (this -> terminal) {
-        node["prediction"] = std::stod(this -> prediction);
+        node["prediction"] = std::stoi(this -> prediction);
         node["loss"] = this -> _loss; // This value is correct regardless of translation
         node["complexity"] = Configuration::regularization;
     } else {

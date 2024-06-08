@@ -1,9 +1,6 @@
 #ifndef DATASET_H
 #define DATASET_H
 
-#define CL_SILENCE_DEPRECATION
-#define __CL_ENABLE_EXCEPTIONS
-
 #include <iostream>
 #include <sstream>
 #include <math.h>
@@ -16,12 +13,7 @@
 #include <unordered_map>
 #include <tbb/concurrent_hash_map.h>
 #include <tbb/scalable_allocator.h>
-// #include <ckmeans/dynamic_prog.cpp>
 #include <ckmeans/Ckmeans.1d.dp.h>
-
-#ifdef INCLUDE_OPENCL
-#include <opencl/cl.hpp>
-#endif
 
 #include <json/json.hpp>
 #include <csv/csv.h>
@@ -32,7 +24,6 @@ class Dataset;
 #include "configuration.hpp"
 #include "encoder.hpp"
 #include "index.hpp"
-#include "state.hpp"
 #include "tile.hpp"
 
 using json = nlohmann::json;
@@ -97,7 +88,7 @@ public:
     mutable int summary_calls = 0;
     mutable int compute_ibs_calls = 0;
     mutable int summary_calls_has_gap = 0;
-    mutable double cum_percent = 0;
+    mutable float cum_percent = 0;
 
 private:
     static bool index_comparator(const std::pair< unsigned int, unsigned int > & left, const std::pair< unsigned int, unsigned int > & right);
@@ -115,14 +106,14 @@ private:
     // N := Number of datapoints in the original dataset
     // E := Number of equivalent points (clusters) in the original dataset 
     std::vector< Bitmask > features; // Binary representation of columns
-    std::vector< double > targets; // Float vector of size N
+    std::vector< float > targets; // Float vector of size N
     Bitmask censoring; // Binary representation of censoring
-    std::vector< double > target_values; // unique values in targets, size E
+    std::vector< float > target_values; // unique values in targets, size E
     std::vector< int > targets_mapping; // Size N to index in E (value ranging from 0 - (E-1))
     std::vector< Bitmask > rows; // Binary representation of rows
     std::vector< Bitmask > feature_rows; // Binary representation of rows
     // Bitmask majority; // Binary representation of columns
-    std::vector<double> inverse_prob_censoring_weights; // Float vector of size E, 1/G(y)
+    std::vector<float> inverse_prob_censoring_weights; // Float vector of size E, 1/G(y)
     float _normalizer;
     // Index index; // Index for calculating summaries
     // Index distance_index; // Index for calculating feature distances
@@ -137,14 +128,14 @@ private:
     void normalize_data(void);
 
 
-    double compute_ibs(Bitmask capture_set) const;
+    float compute_ibs(Bitmask capture_set) const;
 
-    void compute_ipcw(std::vector<double> &ipcw);
+    void compute_ipcw(std::vector<float> &ipcw);
 
     std::vector<int> clustered_mapping;
     std::vector<std::vector<int>> cluster_indices;
 
-    double compute_lowerbound(Bitmask capture_set, std::vector<int> cumulative_death_per_target_values, std::vector<int> num_death_per_target_values, std::vector<double> S) const;
+    float compute_lowerbound(Bitmask capture_set, std::vector<int> cumulative_death_per_target_values, std::vector<int> num_death_per_target_values, std::vector<float> S) const;
 };
 
 #endif

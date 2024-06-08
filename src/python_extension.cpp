@@ -37,8 +37,17 @@ static PyObject * size(PyObject * self, PyObject * args) { return Py_BuildValue(
 // @returns the current status code
 static PyObject * status(PyObject * self, PyObject * args) { return Py_BuildValue("i", GOSDT::status); }
 
+// @returns the global lower bound at the end of training
+static PyObject * lower_bound(PyObject * self, PyObject * args) { return Py_BuildValue("d", GOSDT::lower_bound); }
+
+// @returns the global upper bound at the end of training
+static PyObject * upper_bound(PyObject * self, PyObject * args) { return Py_BuildValue("d", GOSDT::upper_bound); }
+
+// @returns the loss of the tree found at the end of training (or trees - if more than one was found they should have the same loss)
+static PyObject * model_loss(PyObject * self, PyObject * args) { return Py_BuildValue("f", GOSDT::model_loss); }
+
 // Define the list of methods for a module
-static PyMethodDef gosdt_methods[] = {
+static PyMethodDef libosst_methods[] = {
     // { method name, method pointer, method parameter format, method description }
     {"configure", configure, METH_VARARGS, "Configures the algorithm using an input JSON string"},
     {"fit", fit, METH_VARARGS, "Trains the model using an input CSV string"},
@@ -46,19 +55,22 @@ static PyMethodDef gosdt_methods[] = {
     {"iterations", iterations, METH_NOARGS, "Number of iterations spent training"},
     {"size", size, METH_NOARGS, "Number of vertices in the depency graph"},
     {"status", status, METH_NOARGS, "Check the status code of the algorithm"},
+    {"lower_bound", lower_bound, METH_NOARGS, "Check the lower_bound code of the algorithm"},
+    {"upper_bound", upper_bound, METH_NOARGS, "Check the upper_bound code of the algorithm"},
+    {"model_loss", model_loss, METH_NOARGS, "Check the model_loss code of the algorithm"},
     {NULL, NULL, 0, NULL}
 };
 
 // Define the module
-static struct PyModuleDef gosdt = {
+static struct PyModuleDef libosst = {
     PyModuleDef_HEAD_INIT,
-    "gosdt", // Module Name
-    "Generalized Optimal Sparse Decision Tree", // Module Description
+    "libosst", // Module Name
+    "Optimal Sparse Survival Trees", // Module Description
     -1, // Size of per-interpreter state
-    gosdt_methods // Module methods
+    libosst_methods // Module methods
 };
 
 // Initialize the module
-PyMODINIT_FUNC PyInit_gosdt(void) {
-    return PyModule_Create(&gosdt);
+PyMODINIT_FUNC PyInit_libosst(void) {
+    return PyModule_Create(&libosst);
 }
