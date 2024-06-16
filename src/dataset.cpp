@@ -245,7 +245,7 @@ float Dataset::compute_lowerbound(Bitmask capture_set, std::vector<int> cumulati
 void Dataset::normalize_data() {
     // largest target
     float loss_normalizer;
-    loss_normalizer = this -> targets[size() - 1];
+    loss_normalizer = this -> targets[size() - 1] - this -> targets[0];
 
     for (int i = 0; i < size(); i++) {
         targets[i] = targets[i] / loss_normalizer;

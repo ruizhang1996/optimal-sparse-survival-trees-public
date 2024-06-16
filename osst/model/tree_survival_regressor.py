@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 from json import dumps, JSONEncoder
 from numpy import array
-from operator import add, eq, ge
-from sklearn.metrics import confusion_matrix, accuracy_score, balanced_accuracy_score
-
+from .utils import BaseEstimator
+from .metrics import _integrated_brier_score
 # Supporting Override for Converting Numpy Types into Python Values
 class NumpyEncoder(JSONEncoder):
     def default(self, obj):
@@ -18,35 +17,57 @@ class NumpyEncoder(JSONEncoder):
             return super(NumpyEncoder, self).default(obj)
 
 
-class TreeClassifier:
+class TreeSurvivalRegressor:
     """
-    Unified representation of a tree classifier in Python
+    Unified representation of a tree regressor in Python
 
-    This class accepts a dictionary representation of a tree classifier and decodes it into an interactive object
+    This class accepts a dictionary representation of a tree regressor and decodes it into an interactive object
 
     Additional support for encoding/decoding layer can be layers if the feature-space of the model differs from the feature space of the original data
     """
-    def __init__(self, source, encoder=None, X=None, y=None):
-        self.source = source # The classifier stored in a recursive dictionary structure
-        self.encoder = encoder # Optional encoder / decoder unit to run before / after prediction
-        if not X is None and not y is None: # Original training features and labels to fill in missing training loss values
-            self.__initialize_training_loss__(X, y)
 
-    
-    def __initialize_training_loss__(self, X, y):
+    def __init__(self, source, encoder=None, X=None, event=None, y=None):
+        self.source = source  # The regressor stored in a recursive dictionary structure
+        self.encoder = encoder  # Optional encoder / decoder unit to run before / after prediction
+
+        
+        if X is not None and event is not None and y is not None:  # Original training features and labels to fill in missing training loss values
+
+            if len(event.shape) > 1:
+                event = event.values.reshape(-1)
+            if len(y.shape) > 1:
+                y = y.values.reshape(-1)
+            self.__initialize_training_loss__(X, event, y)
+            # self.G = BaseEstimator(event=event, y=y, reverse=True)
+
+    def __initialize_training_loss__(self, X, event, y):
         """
         Compares every prediction y_hat against the labels y, then incorporates the misprediction into the stored loss values
         This is used when parsing models from an algorithm that doesn't provide the training loss in the out put
+
+        Parameters
+        ---
+        X : matrix-like, shape = [n_samples, m_features]
+            matrix containing the training samples and features
+        event: array-like, shape = [n_samples, ]
+            an n-by-1 column of event associated with each sample
+        y : array-like, shape = [n_samplee, ]
+            column containing the correct label for each sample in X
+
         """
+        self.G = BaseEstimator(event=event, y=y, reverse=True)
+        (n, m) = X.shape
+        predicted_leaf = self.predict(X)
         for node in self.__all_leaves__():
             node["loss"] = 0.0
-        (n, m) = X.shape
-        for i in range(n):
-            node = self.__find_leaf__(X.values[i,:])
-            label = y.values[i,-1]
-            weight = 1 / n
-            if node["prediction"] != label:
-                node["loss"] += weight
+            captured = (predicted_leaf == node['prediction'])
+            # captured_X = X[captured]
+            captured_event = event[captured]
+            captured_y = y[captured]
+            node["estimator"] = BaseEstimator(event=captured_event, y=captured_y)
+            
+
+
         return
 
     def __find_leaf__(self, sample):
@@ -108,7 +129,6 @@ class TreeClassifier:
                 nodes.append(node["false"])
         return leaf_list
 
-
     def loss(self):
         """
         Returns
@@ -116,7 +136,7 @@ class TreeClassifier:
         real number : values between [0,1]
             the training loss of this model
         """
-        return sum( node["loss"] for node in self.__all_leaves__() )
+        return sum(node["loss"] for node in self.__all_leaves__())
 
     def classify(self, sample):
         """
@@ -130,7 +150,7 @@ class TreeClassifier:
         string : the prediction for a given sample and conditional probability (given the observations along the decision path) of it being correct
         """
         node = self.__find_leaf__(sample)
-        return node["prediction"], 1 - node["loss"]
+        return node["prediction"]
 
     def predict(self, X):
         """
@@ -147,97 +167,82 @@ class TreeClassifier:
         ---
         array-like, shape = [n_sampels by 1] : a column where each element is the prediction associated with each row
         """
-        if not self.encoder is None: # Perform an encoding if an encoding unit is specified
-            X = pd.DataFrame(self.encoder.encode(X.values[:,:]), columns=self.encoder.headers)
-        
+        if self.encoder is not None:  # Perform an encoding if an encoding unit is specified
+            X = pd.DataFrame(self.encoder.encode(X.values[:, :]), columns=self.encoder.headers)
+
         predictions = []
         (n, m) = X.shape
         for i in range(n):
-            prediction, _ = self.classify(X.values[i,:])
+            prediction = self.classify(X.values[i, :])
             predictions.append(prediction)
         return array(predictions)
 
-    def confidence(self, X):
+    def predict_survival_function(self, X):
         """
-        Requires
-        ---
-        the set of features used should be pre-encoding if an encoder is used
-
         Parameters
         ---
         X : matrix-like, shape = [n_samples by m_features]
             a matrix where each row is a sample to be predicted and each column is a feature to be used for prediction
-
         Returns
         ---
-        array-like, shape = [n_samples by 1] : a column where each element is the conditional probability of each prediction (conditioned only on the features that were used in prediction)
+        array-like, shape = [n_sampels by 1] : a column where each element is the predicted survival function associated with each row
         """
-        if not self.encoder is None:
-            X = pd.DataFrame(self.encoder.encode(X.values[:,:]), columns=self.encoder.headers)
+        if self.encoder is not None:  # Perform an encoding if an encoding unit is specified
+            X = pd.DataFrame(self.encoder.encode(X.values[:, :]), columns=self.encoder.headers)
 
-        conditional_probabilities = []
+        predictions = []
         (n, m) = X.shape
         for i in range(n):
-            _, conditional_probability = self.classify(X.values[i,:])
-            conditional_probabilities.append(conditional_probability)
-        return array(conditional_probabilities)
-    
-    
-    def error(self, X, y, weight=None):
+            leaf_node = self.__find_leaf__(X.values[i, :])
+            predictions.append(leaf_node["estimator"].predict_survival_prob)
+        return array(predictions)
+
+    def predict_cumulative_harzard_function(self, X):
         """
         Parameters
-        --- 
+        ---
         X : matrix-like, shape = [n_samples by m_features]
-            an n-by-m matrix of sample and their features
-        y : array-like, shape = [n_samples by 1]
-            an n-by-1 column of labels associated with each sample
-        weight : real number
-            an n-by-1 column of weights to apply to each sample's misclassification
-
+            a matrix where each row is a sample to be predicted and each column is a feature to be used for prediction
         Returns
         ---
-        real number : the inaccuracy produced by applying this model overthe given dataset, with optionals for weighted inaccuracy
+        array-like, shape = [n_sampels by 1] : a column where each element is the predicted cumulative harzard function associated with each row
         """
-        return 1 - self.score(X, y, weight=weight)
+        if self.encoder is not None:  # Perform an encoding if an encoding unit is specified
+            X = pd.DataFrame(self.encoder.encode(X.values[:, :]), columns=self.encoder.headers)
 
+        predictions = []
+        (n, m) = X.shape
+        for i in range(n):
+            leaf_node = self.__find_leaf__(X.values[i, :])
+            predictions.append(leaf_node["estimator"].predict_cumu_harzard_prob)
+        return array(predictions)
     
-    def score(self, X, y, weight=None):
+
+    def score(self, X, event, y):
         """
         Parameters
         --- 
         X : matrix-like, shape = [n_samples by m_features]
             an n-by-m matrix of sample and their features
-        y : array-like, shape = [n_samples by 1]
+        event: array-like, shape = [n_samples by 1] or [n_samples,]
+            an n-by-1 column of event associated with each sample
+        y : array-like, shape = [n_samples by 1] or [n_samples,]
             an n-by-1 column of labels associated with each sample
-        weight : real number
-            an n-by-1 column of weights to apply to each sample's misclassification
-
         Returns
         ---
         real number : the accuracy produced by applying this model overthe given dataset, with optionals for weighted accuracy
         """
-        y_hat = self.predict(X)
-        if weight == "balanced":
-            return balanced_accuracy_score(y, y_hat)
-        else:
-            return accuracy_score(y, y_hat, normalize=True, sample_weight=weight)
-    
-    def confusion(self, X, y, weight=None):
-        """
-        Parameters
-        --- 
-        X : matrix-like, shape = [n_samples by m_features]
-            an n-by-m matrix of sample and their features
-        y : array-like, shape = [n_samples by 1]
-            an n-by-1 column of labels associated with each sample
-        weight : real number
-            an n-by-1 column of weights to apply to each sample's misclassification
+        survival_functions = self.predict_survival_function(X)
 
-        Returns
-        ---
-        matrix-like, shape = [k_classes by k_classes] : the confusion matrix of all classes present in the dataset
-        """
-        return confusion_matrix(y, self.predict(X, y, weight), sample_weight=weight)
+        if len(event.shape) > 1:
+            event = event.values.reshape(-1)
+        if len(y.shape) > 1:
+            y = y.values.reshape(-1)
+
+        times = np.unique(y) 
+        estimates = np.array([f(times) for f in survival_functions])
+    
+        return _integrated_brier_score(self.G, event, y, estimates, times)
 
     def __len__(self):
         """
@@ -263,7 +268,7 @@ class TreeClassifier:
                 nodes.append(node["true"])
                 nodes.append(node["false"])
         return leaves_counter
-    
+
     def nodes(self):
         """
         Returns
@@ -282,7 +287,6 @@ class TreeClassifier:
                 nodes.append(node["false"])
         return nodes_counter
 
-
     def features(self):
         """
         Returns
@@ -299,7 +303,7 @@ class TreeClassifier:
                 feature_set.add(node["name"])
                 nodes.append(node["true"])
                 nodes.append(node["false"])
-        return feature_set 
+        return feature_set
 
     def encoded_features(self):
         """
@@ -307,7 +311,7 @@ class TreeClassifier:
         ---
         natural number : The number of encoded features used by the supplied encoder to represent the data set
         """
-        return len(self.encoder.headers) if not self.encoder is None else None
+        return len(self.encoder.headers) if self.encoder is not None else None
 
     def maximum_depth(self, node=None):
         """
@@ -326,7 +330,7 @@ class TreeClassifier:
         """
         Returns
         ---
-        string : pseuodocode representing the logic of this classifier
+        string : pseuodocode representing the logic of this regressor
         """
         cases = []
         for group in self.__groups__():
@@ -338,7 +342,8 @@ class TreeClassifier:
                         predicates.append("{} = {}".format(name, list(domain["positive"])[0]))
                     elif len(domain["negative"]) > 0:
                         if len(domain["negative"]) > 1:
-                            predicates.append("{} not in {{ {} }}".format(name, ", ".join([ str(v) for v in domain["negative"] ])) )
+                            predicates.append(
+                                "{} not in {{ {} }}".format(name, ", ".join([str(v) for v in domain["negative"]])))
                         else:
                             predicates.append("{} != {}".format(name, str(list(domain["negative"])[0])))
                     else:
@@ -350,7 +355,7 @@ class TreeClassifier:
                     if domain["max"] != float("INF"):
                         predicate = predicate + " < {}".format(domain["max"])
                     predicates.append(predicate)
-            
+
             if len(predicates) == 0:
                 condition = "if true then:"
             else:
@@ -358,12 +363,12 @@ class TreeClassifier:
             outcomes = []
             # for outcome, probability in group["distribution"].items():
             outcomes.append("    predicted {}: {}".format(group["name"], group["prediction"]))
-            outcomes.append("    misclassification penalty: {}".format(round(group["loss"], 3)))
+            outcomes.append("    normalized loss penalty: {}".format(round(group["loss"], 3)))
             outcomes.append("    complexity penalty: {}".format(round(group["complexity"], 3)))
             result = "\n".join(outcomes)
             cases.append("{}\n{}".format(condition, result))
         return "\n\nelse ".join(cases)
-    
+
     def __repr__(self):
         """
         Returns
@@ -398,7 +403,9 @@ class TreeClassifier:
                     name = "{} {} {}".format(node["name"], node["relation"], node["reference"])
             else:
                 name = "feature_{} {} {}".format(node["feature"], node["relation"], node["reference"])
-            return "[ ${}$ {} {} ]".format(name, self.latex(node["true"]), self.latex(node["false"])).replace("==", " \eq ").replace(">=", " \ge ").replace("<=", " \le ")
+            return "[ ${}$ {} {} ]".format(name, self.latex(node["true"]), self.latex(node["false"])).replace("==",
+                                                                                                              " \eq ").replace(
+                ">=", " \ge ").replace("<=", " \le ")
 
     def json(self):
         """
@@ -407,7 +414,6 @@ class TreeClassifier:
         string : A JSON string representing the model
         """
         return dumps(self.source, cls=NumpyEncoder)
-
 
     def __groups__(self, node=None):
         """
@@ -451,7 +457,7 @@ class TreeClassifier:
                         elif condition_result == "false":
                             rule["negative"].add(reference)
                         else:
-                            raise "OptimalSparseDecisionTree: Malformatted source {}".format(node)
+                            raise "OptimalSparseSurvivalTree: Malformatted source {}".format(node)
                     elif node["relation"] == ">=":
                         rule["type"] = "Numerical"
                         if "max" not in rule:
@@ -463,10 +469,12 @@ class TreeClassifier:
                         elif condition_result == "false":
                             rule["max"] = min(reference, rule["max"])
                         else:
-                            raise "OptimalSparseDecisionTree: Malformatted source {}".format(node)
+                            raise "OptimalSparseSurvivalTree: Malformatted source {}".format(node)
                     else:
                         raise "Unsupported relational operator {}".format(node["relation"])
-                    
+
                     # Add the modified group to the group list
                     groups.append(group)
             return groups
+
+    
