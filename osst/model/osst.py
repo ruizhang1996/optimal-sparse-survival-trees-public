@@ -1,6 +1,6 @@
 import json
-import osst.libosst as osst  # Import the GOSDT extension
-from osst.model.tree_survival_regressor import TreeSurvivalRegressor  # Import the tree classification model
+import osst.libosst as osst  # Import the OSST extension
+from osst.model.tree_survival_regressor import TreeSurvivalRegressor  # Import the tree survival regressor model
 
 class OSST:
     def __init__(self, configuration={}):
@@ -44,7 +44,7 @@ class OSST:
             column containing the correct label for each sample in X
         Modifies
         ---
-        trains a model using the GOSDT native extension
+        trains a model using the OSST native extension
         """
         (n, m) = X.shape
         dataset = X.copy()
