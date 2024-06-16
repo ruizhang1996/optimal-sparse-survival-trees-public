@@ -19,7 +19,13 @@ You need **Python 3.9 or later** to use the module `osst` in your project.
 pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2 matplotlib
 pip3 install osst
 ```
+---
 
+# Compilation
+
+Please refer to the [manual](doc/build.md) to build the C++ command line interface and the Python extension module and run the experiment with example datasets on your machine.
+
+---
 # Configuration
 
 The configuration is a JSON object and has the following structure and default values:
