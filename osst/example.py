@@ -52,7 +52,7 @@ pd.DataFrame(ibs_loss_per_sample, columns=['class_labels']).to_csv(labelpath, he
 config = {
     "look_ahead": True,
     "diagnostics": True,
-    "verbose": True,
+    "verbose": False,
 
     "regularization": 0.01,
     "uncertainty_tolerance": 0.0,

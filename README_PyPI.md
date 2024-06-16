@@ -1,24 +1,17 @@
 # OSST Documentation
-Implementation of [Optimal Sparse Survival Trees (OSST)](https://arxiv.org/abs/2211.14980). This is implemented based on [Generalized Optimal Sparse Decision Tree framework (GOSDT)](https://github.com/ubc-systopia/gosdt-guesses). If you need classification trees, please use GOSDT. If you need regression trees, please use [Optimal Sparse Regression Trees (OSRT)](https://github.com/ruizhang1996/optimal-sparse-regression-tree-public).
+Implementation of [Optimal Sparse Survival Trees (OSST)](https://arxiv.org/abs/2211.14980), an optimal decision tree algorithm for survival analysis. This is implemented based on [Generalized Optimal Sparse Decision Tree framework (GOSDT)](https://github.com/ubc-systopia/gosdt-guesses). If you need classification trees, please use GOSDT. If you need regression trees, please use [Optimal Sparse Regression Trees (OSRT)](https://github.com/ruizhang1996/optimal-sparse-regression-tree-public).
 
 ![image](https://user-images.githubusercontent.com/60573138/189567116-0b719588-d670-4038-a242-2cc4be26816b.png)
 
-
-# Table of Content
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Example](#example)
-- [License](#license)
-- [FAQs](#faqs)
 
 ---
 # Installation
 
 You may use the following commands to install OSST along with its dependencies on macOS, Ubuntu and Windows.  
-You need **Python 3.7 or later** to use the module `osst` in your project.
+You need **Python 3.9 or later** to use the module `osst` in your project.
 
 ```bash
-pip3 install attrs packaging editables pandas sklearn sortedcontainers gmpy2 matplotlib
+pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2 matplotlib
 pip3 install osst
 ```
 
@@ -79,6 +72,11 @@ The configuration is a JSON object and has the following structure and default v
 - Values: true or false
 - Description: Enables bucketization of time threshold for training
 - Default: false 
+
+**number_of_buckets**
+- Values: Integers 
+- Description: The number of time thresholds to which origin data mapping to if bucktize flag is set to True
+- Default: 0
 
 **warm_LB**
 - Values: true or false
@@ -192,164 +190,156 @@ Example code to run OSST with lower bound guessing, and depth limit. The example
 ```
 import pandas as pd
 import numpy as np
-import time
+from osst.model.osst import OSST
+from osst.model.metrics import harrell_c_index, uno_c_index, integrated_brier_score, cumulative_dynamic_auc, compute_ibs_per_sample
+import argparse 
+from sklearn.model_selection import train_test_split
+from sksurv.ensemble import RandomSurvivalForest
+from sksurv.datasets import get_x_y
 import pathlib
-from sklearn.ensemble import GradientBoostingRegressor
-from model.threshold_guess import compute_thresholds
-from model.osrt import OSRT
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("dataset", type=str)
+args = parser.parse_args()
+dataset_path = args.dataset 
 
 # read the dataset
-# preprocess your data otherwise OSRT will binarize continuous feature using all threshold values.
-df = pd.read_csv("experiments/datasets/airfoil/airfoil.csv")
-X, y = df.iloc[:,:-1].values, df.iloc[:,-1].values
-h = df.columns[:-1]
+# preprocess your data otherwise OSST will binarize continuous feature using all threshold values.
+df = pd.read_csv(dataset_path)
+X, event, y = df.iloc[:,:-2].values, df.iloc[:,-2].values.astype(int), df.iloc[:,-1].values
+h = df.columns[:-2]
 X = pd.DataFrame(X, columns=h)
-X_train = X
-y_train = pd.DataFrame(y)
-print("X:", X.shape)
-print("y:",y.shape)
+event = pd.DataFrame(event)
+y = pd.DataFrame(y)
+_, y_sksurv = get_x_y(df, df.columns[-2:], 1)
+# split train and test set
+X_train, X_test, event_train, event_test, y_train, y_test, y_sksurv_train, y_sksurv_test \
+      = train_test_split(X, event, y, y_sksurv, test_size=0.2, random_state=2024)
 
+times_train = np.unique(y_train.values.reshape(-1))
+times_test = np.unique(y_test.values.reshape(-1))
+print("Train time thresholds range: ", times_train,\
+       ",  Test time thresholds range: ", times_test)
 
-# guess thresholds (OPTIONAL) uncomment following lines if you want to speed up optimization
-# NOTE: You should also evaluate accuracy on guessed data if you choose to guess thresholds
-# GBRT parameters for threshold guesses
-# n_est = 40
-# max_depth = 1
-# X_train, thresholds, header, threshold_guess_time = compute_thresholds(X, y, n_est, max_depth)
+# compute reference lower bounds
+ref_model = RandomSurvivalForest(n_estimators=100, max_depth=3, random_state=2024)
+ref_model.fit(X_train, y_sksurv_train)
+ref_S_hat = ref_model.predict_survival_function(X_train)
+ref_estimates = np.array([f(times_train) for f in ref_S_hat])
+ibs_loss_per_sample = compute_ibs_per_sample(event_train, y_train, event_train, y_train, ref_estimates, times_train)
 
+labelsdir = pathlib.Path('/tmp/warm_lb_labels')
+labelsdir.mkdir(exist_ok=True, parents=True)
 
-# train OSRT model
+labelpath = labelsdir / 'warm_label.tmp'
+labelpath = str(labelpath)
+
+pd.DataFrame(ibs_loss_per_sample, columns=['class_labels']).to_csv(labelpath, header='class_labels', index=None)
+
+# fit model
+
 config = {
-    "similar_support": False,
-    "feature_exchange": False,
-    "continuous_feature_exchange": False,
-    "regularization": 0.007,
-    "depth_budget": 6,
-    "model_limit": 1,
-    "time_limit": 0,
-    "similar_support": False,
-    "metric": "L2",
-    "weights": [],
-    "verbose": False,
+    "look_ahead": True,
     "diagnostics": True,
-        }
+    "verbose": False,
 
-model = OSRT(config)
+    "regularization": 0.01,
+    "uncertainty_tolerance": 0.0,
+    "upperbound": 0.0,
+    "depth_budget": 5,
+    "minimum_captured_points": 7,
 
-model.fit(X_train, y_train)
+    "model_limit": 100,
+    
+    "warm_LB": True,
+    "path_to_labels": labelpath,
+  }
 
+
+model = OSST(config)
+model.fit(X_train, event_train, y_train)
 print("evaluate the model, extracting tree and scores", flush=True)
 
-# get the results
-train_acc = model.score(X_train, y_train)
+# evaluation
 n_leaves = model.leaves()
 n_nodes = model.nodes()
 time = model.time
-
 print("Model training time: {}".format(time))
-print("Training score: {}".format(train_acc))
 print("# of leaves: {}".format(n_leaves))
+
+print("Train IBS score: {:.6f} , Test IBS score: {:.6f}".format(\
+    model.score(X_train, event_train, y_train), model.score(X_test, event_test, y_test)))
+
+S_hat_train = model.predict_survival_function(X_train)
+estimates_train = np.array([f(times_train) for f in S_hat_train])
+
+S_hat_test = model.predict_survival_function(X_test)
+estimates_test = np.array([f(times_test) for f in S_hat_test])
+
+print("Train Harrell's c-index: {:.6f}, Test Harrell's c-index: {:.6f}".format(\
+    harrell_c_index(event_train, y_train, estimates_train, times_train)[0], \
+    harrell_c_index(event_test, y_test, estimates_test, times_test)[0]))
+
+print("Train Uno's c-index: {:.6f}, Test Uno's c-index: {:.6f}".format(\
+    uno_c_index(event_train, y_train, event_train, y_train, estimates_train, times_train)[0],\
+    uno_c_index(event_train, y_train, event_test, y_test, estimates_test, times_test)[0]))
+
+print("Train AUC: {:.6f}, Test AUC: {:.6f}".format(\
+    cumulative_dynamic_auc(event_train, y_train, event_train, y_train, estimates_train, times_train)[0],\
+    cumulative_dynamic_auc(event_train, y_train, event_test, y_test, estimates_test, times_test)[0]))
+
 print(model.tree)
 ```
 
 **Output**
 
 ```
-X: (1503, 17)
-y: (1503,)
-osrt reported successful execution
-training completed. 3.341 seconds.
-bounds: [0.744063..0.744063] (0.000000) normalized loss=0.632063, iterations=45664
+Train time thresholds range:  [ 2  3  4  5  6  7  8 10] ,  Test time thresholds range:  [ 2  3  4  5  6  7  8 10]
+loss_normalizer: 8
+Summary calls: 415220
+IBS calls: 74936
+osst reported successful execution
+training completed. 12.518 seconds.
+bounds: [0.167610..0.167610] (0.000000) normalized loss=0.129598, iterations=15263
 evaluate the model, extracting tree and scores
-Model training time: 3.3410000801086426
-Training score: 30.06080184358605
-# of leaves: 16
-if feature_1_1 = 1 and feature_2_2 = 1 then:
-    predicted class: 112.945833
-    normalized loss penalty: 0.01
-    complexity penalty: 0.007
-
-else if feature_1_1 != 1 and feature_2_2 = 1 and feature_5_3 = 1 then:
-    predicted class: 116.111778
-    normalized loss penalty: 0.028
-    complexity penalty: 0.007
-
-else if feature_1_1 != 1 and feature_2_2 = 1 and feature_4_71.3 = 1 and feature_5_3 != 1 then:
-    predicted class: 128.063236
-    normalized loss penalty: 0.034
-    complexity penalty: 0.007
-
-else if feature_1_1 != 1 and feature_2_2 = 1 and feature_3_0.1016 = 1 and feature_4_71.3 != 1 and feature_5_3 != 1 then:
-    predicted class: 120.686444
-    normalized loss penalty: 0.037
-    complexity penalty: 0.007
-
-else if feature_1_1 != 1 and feature_2_2 = 1 and feature_3_0.1016 != 1 and feature_4_71.3 != 1 and feature_5_3 != 1 then:
-    predicted class: 125.05011
-    normalized loss penalty: 0.021
-    complexity penalty: 0.007
-
-else if feature_1_2 = 1 and feature_2_2 != 1 and feature_3_0.3048 = 1 then:
-    predicted class: 109.279
+Model training time: 12.517999649047852
+# of leaves: 6
+Train IBS score: 0.129598 , Test IBS score: 0.123312
+Train Harrell's c-index: 0.825234, Test Harrell's c-index: 0.818405
+Train Uno's c-index: 0.786149, Test Uno's c-index: 0.781953
+Train AUC: 0.803364, Test AUC: 0.809254
+if average_montly_hours_1 = 1 and satisfaction_level_1 = 1 then:
+    predicted time: 44
     normalized loss penalty: 0.0
-    complexity penalty: 0.007
+    complexity penalty: 0.01
 
-else if feature_1_1 = 1 and feature_1_2 != 1 and feature_2_2 != 1 and feature_3_0.3048 = 1 then:
-    predicted class: 113.869267
-    normalized loss penalty: 0.003
-    complexity penalty: 0.007
-
-else if feature_1_1 != 1 and feature_1_2 != 1 and feature_1_3 = 1 and feature_2_2 != 1 and feature_3_0.3048 = 1 then:
-    predicted class: 107.6515
+else if average_montly_hours_1 = 1 and satisfaction_level_1 != 1 then:
+    predicted time: 43
     normalized loss penalty: 0.0
-    complexity penalty: 0.007
+    complexity penalty: 0.01
 
-else if feature_1_1 != 1 and feature_1_2 != 1 and feature_1_3 != 1 and feature_2_2 != 1 and feature_3_0.3048 = 1 then:
-    predicted class: 124.20096
-    normalized loss penalty: 0.038
-    complexity penalty: 0.007
-
-else if feature_1_1 = 1 and feature_2_2 != 1 and feature_3_0.2286 = 1 and feature_3_0.3048 != 1 then:
-    predicted class: 115.355214
-    normalized loss penalty: 0.004
-    complexity penalty: 0.007
-
-else if feature_1_1 != 1 and feature_1_3 = 1 and feature_2_2 != 1 and feature_3_0.2286 = 1 and feature_3_0.3048 != 1 then:
-    predicted class: 112.966
+else if average_montly_hours_1 != 1 and number_projects_3 = 1 then:
+    predicted time: 42
     normalized loss penalty: 0.0
-    complexity penalty: 0.007
+    complexity penalty: 0.01
 
-else if feature_1_1 != 1 and feature_1_3 != 1 and feature_2_2 != 1 and feature_3_0.2286 = 1 and feature_3_0.3048 != 1 then:
-    predicted class: 125.296885
-    normalized loss penalty: 0.097
-    complexity penalty: 0.007
+else if average_montly_hours_1 != 1 and last_evaluation_3 = 1 and number_projects_3 != 1 then:
+    predicted time: 25
+    normalized loss penalty: 0.0
+    complexity penalty: 0.01
 
-else if feature_1_1 = 1 and feature_2_2 != 1 and feature_3_0.1524 = 1 and feature_3_0.2286 != 1 and feature_3_0.3048 != 1 then:
-    predicted class: 116.648313
-    normalized loss penalty: 0.009
-    complexity penalty: 0.007
+else if average_montly_hours_1 != 1 and last_evaluation_3 != 1 and number_projects_3 != 1 and satisfaction_level_1 = 1 then:
+    predicted time: 24
+    normalized loss penalty: 0.0
+    complexity penalty: 0.01
 
-else if feature_1_1 != 1 and feature_2_2 != 1 and feature_3_0.1524 = 1 and feature_3_0.2286 != 1 and feature_3_0.3048 != 1 then:
-    predicted class: 125.097889
-    normalized loss penalty: 0.112
-    complexity penalty: 0.007
-
-else if feature_2_2 != 1 and feature_2_3 = 1 and feature_3_0.1524 != 1 and feature_3_0.2286 != 1 and feature_3_0.3048 != 1 then:
-    predicted class: 122.649413
-    normalized loss penalty: 0.067
-    complexity penalty: 0.007
-
-else if feature_2_2 != 1 and feature_2_3 != 1 and feature_3_0.1524 != 1 and feature_3_0.2286 != 1 and feature_3_0.3048 != 1 then:
-    predicted class: 128.906417
-    normalized loss penalty: 0.173
-    complexity penalty: 0.007
+else if average_montly_hours_1 != 1 and last_evaluation_3 != 1 and number_projects_3 != 1 and satisfaction_level_1 != 1 then:
+    predicted time: 23
+    normalized loss penalty: 0.0
+    complexity penalty: 0.01
 ```
 
-# FAQs
-
-If you run into any issues when running GOSDT, consult the [**FAQs**](/doc/faqs.md) first.
-
----
 
 # License
 
