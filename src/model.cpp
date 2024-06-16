@@ -1,5 +1,4 @@
 #include "model.hpp"
-#include "dataset.hpp"
 int Model::leaf_num = 0;
 
 Model::Model(void) {}

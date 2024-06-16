@@ -1,4 +1,6 @@
 #include "bitmask.hpp"
+#include <cmath>
+#include <cstring>
 
 // ********************************
 // ** Function Module Definition **

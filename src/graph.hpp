@@ -11,8 +11,6 @@
 #include <tbb/concurrent_vector.h>
 #include <tbb/scalable_allocator.h>
 
-class Graph;
-
 #include "bitmask.hpp"
 #include "task.hpp"
 #include "tile.hpp"
