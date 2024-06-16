@@ -1,8 +1,6 @@
 # OSST Documentation
 Implementation of [Optimal Sparse Survival Trees (OSST)](https://arxiv.org/abs/2211.14980), an optimal decision tree algorithm for survival analysis. This is implemented based on [Generalized Optimal Sparse Decision Tree framework (GOSDT)](https://github.com/ubc-systopia/gosdt-guesses). If you need classification trees, please use GOSDT. If you need regression trees, please use [Optimal Sparse Regression Trees (OSRT)](https://github.com/ruizhang1996/optimal-sparse-regression-tree-public).
 
-![image](https://user-images.githubusercontent.com/60573138/189567116-0b719588-d670-4038-a242-2cc4be26816b.png)
-
 # Table of Content
 - [Installation](#installation)
 - [Compilation](#compilation)
