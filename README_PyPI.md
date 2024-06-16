@@ -8,7 +8,7 @@ You may use the following commands to install OSST along with its dependencies o
 You need **Python 3.9 or later** to use the module `osst` in your project.
 
 ```bash
-pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2 matplotlib
+pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2 matplotlib scikit-survival
 pip3 install osst
 ```
 
