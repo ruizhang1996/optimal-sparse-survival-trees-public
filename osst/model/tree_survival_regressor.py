@@ -19,7 +19,7 @@ class NumpyEncoder(JSONEncoder):
 
 class TreeSurvivalRegressor:
     """
-    Unified representation of a tree regressor in Python
+    Unified representation of a survival tree regressor in Python
 
     This class accepts a dictionary representation of a tree regressor and decodes it into an interactive object
 
