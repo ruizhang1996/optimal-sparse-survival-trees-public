@@ -21,84 +21,84 @@ jobs:
             fail-fast: false
             matrix:
                 config:
-                    - {
+                    - 
                         name: "Ubuntu 22.04 x86-64",
                         os: ubuntu-22.04,
                         python-major-version: 3,
                         python-minor-version: 9,
-                    }
-                    - {
+                    
+                    - 
                         name: "Ubuntu 22.04 x86-64",
                         os: ubuntu-22.04,
                         python-major-version: 3,
                         python-minor-version: 10,
-                    }
-                    - {
+                    
+                    - 
                         name: "Ubuntu 22.04 x86-64",
                         os: ubuntu-22.04,
                         python-major-version: 3,
                         python-minor-version: 11,
-                    }
-                     - {
+                    
+                     - 
                         name: "Ubuntu 22.04 x86-64",
                         os: ubuntu-22.04,
                         python-major-version: 3,
                         python-minor-version: 12,
-                    }
-                    - {
+                    
+                    - 
                         name: "CentOS 7 x86-64",
                         os: ubuntu-22.04,
                         python-major-version: 3,
                         python-minor-version: 9,
-                    }
-                    - {
+                    
+                    - 
                         name: "macOS Monterey x86-64",
                         os: macos-12,
                         python-major-version: 3,
                         python-minor-version: 9,
-                    }
-                    - {
+                    
+                    - 
                         name: "macOS Monterey x86-64",
                         os: macos-12,
                         python-major-version: 3,
                         python-minor-version: 10,
-                    }
-                    - {
+                    
+                    - 
                         name: "macOS Monterey x86-64",
                         os: macos-12,
                         python-major-version: 3,
                         python-minor-version: 11,
-                    }
-                    - {
+                    
+                    - 
                         name: "macOS Monterey x86-64",
                         os: macos-12,
                         python-major-version: 3,
                         python-minor-version: 12,
-                    }
-                    - {
+                    
+                    - 
                         name: "Windows Server 2022 x86-64 (Python 3.9)",
                         os: windows-2022,
                         python-major-version: 3,
                         python-minor-version: 9,
-                    }
-                    - {
+                    
+                    - 
                         name: "Windows Server 2022 x86-64 (Python 3.10)",
                         os: windows-2022,
                         python-major-version: 3,
                         python-minor-version: 10,
-                    }
-                    - {
+                    
+                    - 
                         name: "Windows Server 2022 x86-64 (Python 3.11)",
                         os: windows-2022,
                         python-major-version: 3,
                         python-minor-version: 11,
-                    }
-                    - {
+                    
+                    - 
                         name: "Windows Server 2022 x86-64 (Python 3.12)",
                         os: windows-2022,
                         python-major-version: 3,
                         python-minor-version: 12,
-                    }
+                    
         steps:
             # Checkout the repo
             - name: Checkout the repo
