@@ -10,12 +10,18 @@ This module includes code from pakcage scikit-survival: https://github.com/sebp/
 """
 
 def _integrated_brier_score(G, event_test, y_test, estimates, times):
+    """ Helper function for osst score function: compute the IBS score 
+    
+    """
     brier_scores = _brier_score(G, event_test, y_test, estimates, times)
     ibs = np.sum([ brier_scores[i] * (times[i+1] - times[i]) for i in range(len(times) - 1)]) / (times[-1] - times[0])
     return ibs 
 
 
 def _brier_score(G, event_test, y_test, estimates, times):
+    """
+    Helper function for osst score function: compute the time-dependent brier scores
+    """
     n_times = times.shape[0]
     ipcw_times = G.predict_ipcw(times)
     ipcw_y_test = G.predict_ipcw(y_test)
@@ -30,6 +36,49 @@ def _brier_score(G, event_test, y_test, estimates, times):
     return brier_scores
 
 def integrated_brier_score(event_train, y_train, event_test, y_test, estimates, times):
+    """ The Integrated Brier Score (IBS)
+
+    Parameters
+    ----------
+    event_train : array-like, shape = (n_train_samples,) or (n_train_samples, 1)
+                  column containing event indicator for each training sample
+
+    y_train : array-like, shape = (n_train_samples,) or (n_train_samples, 1)
+              column containing the observed time for each training sample
+
+
+    event_test : array-like, shape = (n_test_samples,) or (n_train_samples, 1)
+                 column containing event indicator for each testing sample
+
+    y_test : array-like, shape = (n_test_samples,) or (n_train_samples, 1)
+              column containing the observed time for each testing sample
+
+    estimate : array-like, shape = (n_test_samples, n_times)
+        Estimated survival probability of remaining event-free at time points
+        specified by `times`. The value of ``estimates[i][j]`` must correspond to
+        the estimated probability of remaining event-free up to the time point
+        the predicted survival proability of sample `i` at ``times[j]``. 
+        Typically, estimated probabilities are obtained via the
+        survival function returned by an estimator's ``predict_survival_function`` method.
+
+    times : array-like, shape = (n_times,) 
+        The time points for which to estimate the time-dependent brier scores.
+        Values must be sorted in ascending order.
+
+
+    tied_tol : float, optional, default: 1e-8
+        The tolerance value for considering ties.
+        If the absolute difference between risk scores is smaller
+        or equal than `tied_tol`, risk scores are considered tied.
+
+    Returns
+    -------
+
+    ibs : float
+        The integrated Brier score.
+
+
+    """
     if len(event_train.shape) > 1:
         event_train = event_train.values.reshape(-1)
     if len(y_train.shape) > 1:
@@ -62,13 +111,12 @@ def brier_score(event_train, y_train, event_test, y_test, estimates, times):
     y_test : array-like, shape = (n_test_samples,)
               column containing the observed time for each testing sample
 
-    estimate : array-like, shape = (n_test_samples, n_times)
-        Estimated probability of remaining event-free at time points
-        specified by `times`. The value of ``estimate[i]`` must correspond to
+    Estimated survival probability of remaining event-free at time points
+        specified by `times`. The value of ``estimates[i][j]`` must correspond to
         the estimated probability of remaining event-free up to the time point
-        ``times[i]``. Typically, estimated probabilities are obtained via the
-        survival function returned by an estimator's
-        ``predict_survival_function`` method.
+        the predicted survival proability of sample `i` at ``times[j]``. 
+        Typically, estimated probabilities are obtained via the survival function 
+        returned by an estimator's ``predict_survival_function`` method.
 
     times : array-like, shape = (n_times,)
         The time points for which to estimate the Brier score.
@@ -98,6 +146,8 @@ def brier_score(event_train, y_train, event_test, y_test, estimates, times):
 
 
 def _find_all_comparable_pairs(event, time, order):
+    """ Helper function for _weighted_c_index: find all comparable pairs
+    """
     n = len(time)
     i = 0
     while i < n - 1:
@@ -120,6 +170,8 @@ def _find_all_comparable_pairs(event, time, order):
 
 
 def _weighted_c_index(event, time, estimates, threshold_mapping, weights, tied_tol=1e-8):
+    """ Helper function for harrell_c_index and uno_c_index 
+    """
     order = np.argsort(time)
     num_concordant = 0
     num_tied = 0
@@ -157,6 +209,45 @@ def _weighted_c_index(event, time, estimates, threshold_mapping, weights, tied_t
 
 
 def harrell_c_index(event, y, estimates, times):
+    """Concordance index for right-censored data
+    
+    Parameters
+    ----------
+    event : array-like, shape = (n_samples,) or (n_samples, 1)
+                  column containing event indicator for each testing sample
+
+    y : array-like, shape = (n_samples,) or (n_samples, 1)
+              column containing the observed time for each testing sample
+
+    estimate : array-like, shape = (n_samples, n_times)
+        Estimated survival probability of remaining event-free at time points
+        specified by `times`. The value of ``estimates[i][j]`` must correspond to
+        the estimated probability of remaining event-free up to the time point
+        the predicted survival proability of sample `i` at ``times[j]``. 
+        Typically, estimated probabilities are obtained via the
+        survival function returned by an estimator's ``predict_survival_function`` method.
+
+    times : array-like, shape = (n_times,) 
+        The time points for which to estimate the harrell's c-index score.
+        Values must be sorted in ascending order.
+
+
+    Returns
+    -------
+    cindex : float
+        Concordance index
+
+    num_concordant : int
+        Number of concordant pairs
+
+    num_tied : int
+        Number of tied pairs
+
+    num_comparable : int
+        Number of comparable pairs
+
+        
+    """
     if len(event.shape) > 1:
             event = event.values.reshape(-1)
     if len(y.shape) > 1:
@@ -173,6 +264,51 @@ def harrell_c_index(event, y, estimates, times):
     return _weighted_c_index(event, y, estimates, time_threshold_mapping, weights)
     
 def uno_c_index(event_train, y_train, event_test, y_test, estimates, times):
+    """ Concordance index for right-censored data based on inverse probability of censoring weights.
+
+    Parameters
+    ----------
+    event_train : array-like, shape = (n_train_samples,) or (n_train_samples, 1)
+                  column containing event indicator for each training sample
+
+    y_train : array-like, shape = (n_train_samples,) or (n_train_samples, 1)
+              column containing the observed time for each training sample
+
+
+    event_test : array-like, shape = (n_test_samples,) or (n_train_samples, 1)
+                 column containing event indicator for each testing sample
+
+    y_test : array-like, shape = (n_test_samples,) or (n_train_samples, 1)
+              column containing the observed time for each testing sample
+
+    estimate : array-like, shape = (n_test_samples, n_times)
+        Estimated survival probability of remaining event-free at time points
+        specified by `times`. The value of ``estimates[i][j]`` must correspond to
+        the estimated probability of remaining event-free up to the time point
+        the predicted survival proability of sample `i` at ``times[j]``. 
+        Typically, estimated probabilities are obtained via the
+        survival function returned by an estimator's ``predict_survival_function`` method.
+
+    times : array-like, shape = (n_times,) 
+        The time points for which to estimate the uno's c-index score.
+        Values must be sorted in ascending order.
+
+
+    Returns
+    -------
+    cindex : float
+        Concordance index
+
+    num_concordant : int
+        Number of concordant pairs
+
+    num_tied : int
+        Number of tied pairs
+
+    num_comparable : int
+        Number of comparable pairs
+
+    """
     if len(event_train.shape) > 1:
         event_train = event_train.values.reshape(-1)
     if len(y_train.shape) > 1:
@@ -197,6 +333,56 @@ def uno_c_index(event_train, y_train, event_test, y_test, estimates, times):
 
 
 def cumulative_dynamic_auc(event_train, y_train, event_test, y_test, estimates, times, tied_tol=1e-8):
+    """ cumulative/dynamic AUC metric for right-censored time-to-event data.
+
+    Parameters
+    ----------
+    event_train : array-like, shape = (n_train_samples,) or (n_train_samples, 1)
+                  column containing event indicator for each training sample
+
+    y_train : array-like, shape = (n_train_samples,) or (n_train_samples, 1)
+              column containing the observed time for each training sample
+
+
+    event_test : array-like, shape = (n_test_samples,) or (n_train_samples, 1)
+                 column containing event indicator for each testing sample
+
+    y_test : array-like, shape = (n_test_samples,) or (n_train_samples, 1)
+              column containing the observed time for each testing sample
+
+    estimate : array-like, shape = (n_test_samples, n_times)
+        Estimated survival probability of remaining event-free at time points
+        specified by `times`. The value of ``estimates[i][j]`` must correspond to
+        the estimated probability of remaining event-free up to the time point
+        the predicted survival proability of sample `i` at ``times[j]``. 
+        Typically, estimated probabilities are obtained via the
+        survival function returned by an estimator's ``predict_survival_function`` method.
+
+    times : array-like, shape = (n_times,) 
+        The time points for which to estimate the time-dependent AUC score.
+        Values must be sorted in ascending order.
+
+
+    tied_tol : float, optional, default: 1e-8
+        The tolerance value for considering ties.
+        If the absolute difference between risk scores is smaller
+        or equal than `tied_tol`, risk scores are considered tied.
+
+    Returns
+    -------
+    mean_auc : float
+        Summary measure referring to the mean cumulative/dynamic AUC
+        over the specified time range in `times`.
+
+    auc scores : array, shape = (n_times',)
+        The valid time-dependent AUC scores (evaluated at `times`). 
+        n_times' <= n_times
+
+    times': array, shape = (n_times',)
+        The valid time thresholds to compute time-dependent AUC score
+    
+
+    """
     # input shape check
     if len(event_train.shape) > 1:
         event_train = event_train.values.reshape(-1)
@@ -283,7 +469,10 @@ def cumulative_dynamic_auc(event_train, y_train, event_test, y_test, estimates, 
 
     return mean_auc, scores, times
 
+
 def compute_ibs_per_sample(event_train, y_train, event_test, y_test, estimates, times):
+    """ Compute IBS score for each sample
+    """
     if len(event_train.shape) > 1:
         event_train = event_train.values.reshape(-1)
     if len(y_train.shape) > 1:
