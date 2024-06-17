@@ -12,6 +12,7 @@ requires = [
     "scikit-learn",
     "sortedcontainers",
     "gmpy2",
-    "matplotlib"
+    "matplotlib",
+    "scikit-survival"
 ]
 build-backend = "setuptools.build_meta"

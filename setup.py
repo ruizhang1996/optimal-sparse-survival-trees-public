@@ -38,6 +38,7 @@ setup(
                       "scikit-learn",
                       "sortedcontainers",
                       "gmpy2",
-                      "matplotlib"
+                      "matplotlib",
+                      "scikit-survival"
                     ]
 )
