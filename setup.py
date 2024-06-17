@@ -18,7 +18,7 @@ print("Additional CMake Arguments = {}".format(cmake_args))
 
 setup(
     name="osst",
-    version="0.1.2",
+    version="0.1.3",
     description="Implementation of Optimal Sparse Survival Trees",
     author="UBC Systopia Research Lab",
     url="https://github.com/ruizhang1996/optimal-sparse-survival-trees-public",

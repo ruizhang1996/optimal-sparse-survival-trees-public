@@ -203,17 +203,13 @@ import pandas as pd
 import numpy as np
 from osst.model.osst import OSST
 from osst.model.metrics import harrell_c_index, uno_c_index, integrated_brier_score, cumulative_dynamic_auc, compute_ibs_per_sample
-import argparse 
 from sklearn.model_selection import train_test_split
 from sksurv.ensemble import RandomSurvivalForest
 from sksurv.datasets import get_x_y
 import pathlib
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("dataset", type=str)
-args = parser.parse_args()
-dataset_path = args.dataset 
+dataset_path = "experiments/datasets/churn/churn.csv"
 
 # read the dataset
 # preprocess your data otherwise OSST will binarize continuous feature using all threshold values.
@@ -224,14 +220,15 @@ X = pd.DataFrame(X, columns=h)
 event = pd.DataFrame(event)
 y = pd.DataFrame(y)
 _, y_sksurv = get_x_y(df, df.columns[-2:], 1)
+print("X shape: ", X.shape)
 # split train and test set
 X_train, X_test, event_train, event_test, y_train, y_test, y_sksurv_train, y_sksurv_test \
       = train_test_split(X, event, y, y_sksurv, test_size=0.2, random_state=2024)
 
 times_train = np.unique(y_train.values.reshape(-1))
 times_test = np.unique(y_test.values.reshape(-1))
-print("Train time thresholds range: ", times_train,\
-       ",  Test time thresholds range: ", times_test)
+print("Train time thresholds range: ({:.1f}, {:.1f}),  Test time thresholds range: ({:.1f}, {:.1f})".format(\
+    times_train[0], times_train[-1], times_test[0], times_test[-1]))
 
 # compute reference lower bounds
 ref_model = RandomSurvivalForest(n_estimators=100, max_depth=3, random_state=2024)
@@ -306,47 +303,40 @@ print(model.tree)
 **Output**
 
 ```
-Train time thresholds range:  [ 2  3  4  5  6  7  8 10] ,  Test time thresholds range:  [ 2  3  4  5  6  7  8 10]
-loss_normalizer: 8
-Summary calls: 415220
-IBS calls: 74936
+X shape:  (2000, 42)
+Train time thresholds range: (0.0, 12.0),  Test time thresholds range: (0.0, 12.0)
 osst reported successful execution
-training completed. 12.518 seconds.
-bounds: [0.167610..0.167610] (0.000000) normalized loss=0.129598, iterations=15263
+training completed. 4.968 seconds.
+bounds: [0.168379..0.168379] (0.000000) IBS loss = 0.118379, iterations=16920
 evaluate the model, extracting tree and scores
-Model training time: 12.517999649047852
-# of leaves: 6
-Train IBS score: 0.129598 , Test IBS score: 0.123312
-Train Harrell's c-index: 0.825234, Test Harrell's c-index: 0.818405
-Train Uno's c-index: 0.786149, Test Uno's c-index: 0.781953
-Train AUC: 0.803364, Test AUC: 0.809254
-if average_montly_hours_1 = 1 and satisfaction_level_1 = 1 then:
-    predicted time: 44
+Model training time: 4.9679999351501465
+# of leaves: 5
+Train IBS score: 0.118379 , Test IBS score: 0.124289
+Train Harrell's c-index: 0.737871, Test Harrell's c-index: 0.734727
+Train Uno's c-index: 0.689405, Test Uno's c-index: 0.706680
+Train AUC: 0.800940, Test AUC: 0.806016
+if product_accounting_No = 1 then:
+    predicted time: 4
     normalized loss penalty: 0.0
     complexity penalty: 0.01
 
-else if average_montly_hours_1 = 1 and satisfaction_level_1 != 1 then:
-    predicted time: 43
+else if csat_score_7 = 1 and product_accounting_No != 1 then:
+    predicted time: 3
     normalized loss penalty: 0.0
     complexity penalty: 0.01
 
-else if average_montly_hours_1 != 1 and number_projects_3 = 1 then:
-    predicted time: 42
+else if csat_score_7 != 1 and product_accounting_No != 1 and product_payroll_No = 1 then:
+    predicted time: 2
     normalized loss penalty: 0.0
     complexity penalty: 0.01
 
-else if average_montly_hours_1 != 1 and last_evaluation_3 = 1 and number_projects_3 != 1 then:
-    predicted time: 25
+else if csat_score_7 != 1 and csat_score_8 = 1 and product_accounting_No != 1 and product_payroll_No != 1 then:
+    predicted time: 1
     normalized loss penalty: 0.0
     complexity penalty: 0.01
 
-else if average_montly_hours_1 != 1 and last_evaluation_3 != 1 and number_projects_3 != 1 and satisfaction_level_1 = 1 then:
-    predicted time: 24
-    normalized loss penalty: 0.0
-    complexity penalty: 0.01
-
-else if average_montly_hours_1 != 1 and last_evaluation_3 != 1 and number_projects_3 != 1 and satisfaction_level_1 != 1 then:
-    predicted time: 23
+else if csat_score_7 != 1 and csat_score_8 != 1 and product_accounting_No != 1 and product_payroll_No != 1 then:
+    predicted time: 0
     normalized loss penalty: 0.0
     complexity penalty: 0.01
 ```

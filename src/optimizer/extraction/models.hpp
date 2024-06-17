@@ -3,8 +3,10 @@ void Optimizer::models(std::unordered_set< Model > & results) {
     if (Configuration::model_limit == 0) { return; }
     std::unordered_set< Model *, std::hash< Model * >, std::equal_to< Model * > > local_results;
     models(this -> root, local_results);
-    std::cout << "Summary calls: " << State::dataset.summary_calls << std::endl;
-    std::cout << "IBS calls: " << State::dataset.compute_ibs_calls << std::endl;
+    if (Configuration::verbose) {
+        std::cout << "Summary calls: " << State::dataset.summary_calls << std::endl;
+        std::cout << "IBS calls: " << State::dataset.compute_ibs_calls << std::endl;
+    }
     
     for (auto iterator = local_results.begin(); iterator != local_results.end(); ++iterator) {
         results.insert(**iterator);

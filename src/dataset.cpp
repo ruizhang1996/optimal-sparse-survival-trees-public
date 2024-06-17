@@ -255,7 +255,7 @@ void Dataset::normalize_data() {
     }
     this -> _normalizer = loss_normalizer;
 
-    std::cout << "loss_normalizer: " << loss_normalizer << std::endl;
+    if (Configuration::verbose) std::cout << "loss_normalizer: " << loss_normalizer << std::endl;
 }
 
 

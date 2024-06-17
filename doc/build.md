@@ -238,8 +238,8 @@ yum install -y zip
 yum install -y cmake
 yum install -y ninja-build
 yum install pkgconfig
-python3.7 -m pip install --upgrade scikit-build
-python3.7 -m pip install --upgrade auditwheel
+python3.9 -m pip install --upgrade scikit-build
+python3.9 -m pip install --upgrade auditwheel
 yum install -y patchelf
 
 # Install the VCPKG package manager
@@ -272,13 +272,6 @@ Please adjust the name of your wheel file accordingly.
 
 ```bash
 pip3 install dist/osst-0.1.0-cp310-cp310-macosx_12_0_x86_64.whl
-pip3 install attrs packaging editables pandas sklearn sortedcontainers gmpy2 matplotlib
-python3 osst/example.py
-```
-
-If you are using macOS 11.0 or higher, and python 3.7 or 3.8.
-```bash
-SYSTEM_VERSION_COMPAT=0 pip3 install dist/osst-0.1.0-cp38-abi3-macosx_13_0_x86_64.whl
 pip3 install attrs packaging editables pandas sklearn sortedcontainers gmpy2 matplotlib
 python3 osst/example.py
 ```

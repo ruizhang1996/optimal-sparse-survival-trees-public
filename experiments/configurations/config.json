@@ -1,14 +1,8 @@
 {
-    "balance": false,
-    "cancellation": true,
     "look_ahead": true,
-    "similar_support": false,
-    "feature_exchange": false,
-    "continuous_feature_exchange": false,
-    "rule_list": false,
-    "k_cluster": false,
     "bucketize": false,
     "number_of_buckets": 0,
+
     "diagnostics": true,
     "verbose": true,
   
@@ -25,16 +19,12 @@
     "time_limit": 0,
     "worker_limit": 1,
   
-    "costs": "",
     "model": "",
     "profile": "",
     "timing": "",
     "trace": "",
     "tree": "",
-    "datatset_encoding": "",
 
-    "metric": "L2",
-    "weights": [],
     "warm_LB": false,
     "path_to_labels": ""
   }
