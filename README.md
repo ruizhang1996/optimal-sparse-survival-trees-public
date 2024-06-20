@@ -201,7 +201,7 @@ The configuration is a JSON object and has the following structure and default v
 
 # Example
 
-Example code to run OSST with lower bound guessing, and depth limit. The example python file is available in [osst/example.py](/gosdt/example.py). A tutorial ipython notebook is available in [osst/tutorial.ipynb](/gosdt/tutorial.ipynb).
+Example code to run OSST with lower bound guessing, and depth limit. The example python file is available in [osst/example.py](/osst/example.py).
 
 ```
 import pandas as pd

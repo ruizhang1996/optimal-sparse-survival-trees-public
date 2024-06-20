@@ -10,7 +10,8 @@ jobs:
         strategy:
           fail-fast: false
           matrix:
-            os: [ubuntu-22.04, ubuntu-24.04, macos-12, macos-13, macos-14, windows-2022]
+            # os: [ubuntu-22.04, ubuntu-24.04, macos-12, macos-13, macos-14, windows-2022]
+            os: [windows-2022]
             python-minor-version: [9, 10, 11, 12]
 
         steps:
@@ -25,20 +26,6 @@ jobs:
           - name: Verify the Python version
             run: |
                 python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
-          
-          # Install required development tools: CMake
-          # - name: Install required development tools - cmake (Windows)
-          #   if: ${{ startsWith(matrix.os, 'windows') }}
-          #   run: |
-          #       winget install Kitware.CMake
-          # Setup MSVC for windows
-          - name: Setup MSVC for Windows
-            if: startsWith(matrix.os, 'windows')
-            run: |
-              choco install visualstudio2022community --package-parameters "--includeRecommended --includeOptional"
-              choco install visualstudio2022buildtools --package-parameters "--includeRecommended --includeOptional"
-              choco install visualstudio2022-workload-vctools
-            shell: powershell
           
           # Install required development tools: Ninja
           - name: Install required development tools - Ninja (Ubuntu)
@@ -106,10 +93,12 @@ jobs:
                 vcpkg install tbb:x64-windows
                 vcpkg install gmp:x64-windows
 
-          - name: Configure CMake
+          # Setup MSVC for windows
+          - name: Setup MSVC for Windows
             if: startsWith(matrix.os, 'windows')
-            run: cmake -G "Visual Studio 17 2022" -A x64 .
-            
+            uses: ilammy/msvc-dev-cmd@v1
+          
+          # Build the project
           - name: Build the project
             run: |
                 python3 build.py
