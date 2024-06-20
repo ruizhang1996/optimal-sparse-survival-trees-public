@@ -40,9 +40,6 @@ jobs:
             uses: ilammy/msvc-dev-cmd@v1
             with:
               arch: x64
-          - name: Configure CMake
-            if: startsWith(matrix.os, 'windows')
-            run: cmake -G "Visual Studio 17 2022" -A x64 .
           
           # Install required development tools: Ninja
           - name: Install required development tools - Ninja (Ubuntu)
@@ -109,6 +106,11 @@ jobs:
             run: |
                 vcpkg install tbb:x64-windows
                 vcpkg install gmp:x64-windows
+
+          - name: Configure CMake
+            if: startsWith(matrix.os, 'windows')
+            run: cmake -G "Visual Studio 17 2022" -A x64 .
+            
           - name: Build the project
             run: |
                 python3 build.py
