@@ -28,10 +28,10 @@ jobs:
           
           # Install required development tools: CMake
           - name: Install required development tools - cmake (macos)
-            if: ${{ !startsWith(matrix.os, 'windows') }}
+            if: ${{ startsWith(matrix.os, 'windows') }}
             run: |
                 winget install Kitware.CMake
-                
+
           - name: Setup MSVC
             if: startsWith(matrix.os, 'windows')
             uses: ilammy/msvc-dev-cmd@v1
