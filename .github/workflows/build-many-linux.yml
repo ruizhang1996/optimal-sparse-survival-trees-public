@@ -39,8 +39,8 @@ jobs:
                     yum install -y cmake
                     yum install -y ninja-build
                     yum install -y pkgconfig
-                    python3 -m pip install --upgrade scikit-build
-                    python3 -m pip install --upgrade auditwheel
+                    python3.${{ matrix.python-minor-version }} -m pip install --upgrade scikit-build
+                    python3.${{ matrix.python-minor-version }} -m pip install --upgrade auditwheel
                     yum install -y patchelf
                     git clone https://github.com/Microsoft/vcpkg.git
                     ./vcpkg/bootstrap-vcpkg.sh
@@ -49,7 +49,7 @@ jobs:
                     vcpkg install tbb
                     vcpkg install gmp
                     cd /source
-                    python3 build.py
+                    python3.${{ matrix.python-minor-version }} build.py
             
           # Run the sample experiment
           - name: Install the OSST Python module and run the sample experiment (Python 3.9 - 3.11)
