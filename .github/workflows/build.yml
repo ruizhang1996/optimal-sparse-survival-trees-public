@@ -35,13 +35,14 @@ jobs:
           #   if: ${{ !startsWith(matrix.os, 'macos') }}
           #   run: |
           #       brew install cmake
-          - name: Setup MSVC for windows
+          - name: Setup MSVC
             if: startsWith(matrix.os, 'windows')
-            run: |
-              choco install visualstudio2022community 
-              choco install visualstudio2022buildtools 
-              choco install visualstudio2022-workload-vctools
-            shell: powershell
+            uses: ilammy/msvc-dev-cmd@v1
+            with:
+              arch: x64
+          - name: Configure CMake
+            if: startsWith(matrix.os, 'windows')
+            run: cmake -G "Visual Studio 17 2022" -A x64 .
           
           # Install required development tools: Ninja
           - name: Install required development tools - Ninja (Ubuntu)
