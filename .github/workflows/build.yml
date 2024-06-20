@@ -107,9 +107,17 @@ jobs:
                 python3 build.py
           
           # Run the sample experiment
-          - name: Install the OSST Python module and run the sample experiment
+          - name: Install the OSST Python module and run the sample experiment (Python 3.9 - 3.11)
+            if: matrix.python-minor-version != 12
             run: |
                 python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
                 pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2 matplotlib
+                python3 -c "import os; import subprocess; exit(subprocess.run(['pip3', 'install', 'dist/{}'.format(os.listdir('dist')[0])]).returncode)"
+                python3 osst/example.py
+          - name: Install the OSST Python module and run the sample experiment (Python 3.12)
+            if: matrix.python-minor-version == 12
+            run: |
+                python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
+                pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2==2.2.0a1 matplotlib
                 python3 -c "import os; import subprocess; exit(subprocess.run(['pip3', 'install', 'dist/{}'.format(os.listdir('dist')[0])]).returncode)"
                 python3 osst/example.py
