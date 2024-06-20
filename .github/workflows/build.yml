@@ -21,7 +21,7 @@ jobs:
           - name: Install required development tools - Python 3.${{ matrix.python-minor-version }}
             uses: actions/setup-python@v4
             with:
-                python-version: '3.${{ matrix.config.python-minor-version }}'
+                python-version: '3.${{ matrix.python-minor-version }}'
           - name: Verify the Python version
             run: |
                 python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
