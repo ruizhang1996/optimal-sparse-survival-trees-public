@@ -27,16 +27,18 @@ jobs:
                 python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
           
           # Install required development tools: CMake
-          - name: Install required development tools - cmake (macos)
-            if: ${{ startsWith(matrix.os, 'windows') }}
-            run: |
-                winget install Kitware.CMake
-
-          - name: Setup MSVC
+          # - name: Install required development tools - cmake (Windows)
+          #   if: ${{ startsWith(matrix.os, 'windows') }}
+          #   run: |
+          #       winget install Kitware.CMake
+          # Setup MSVC for windows
+          - name: Setup MSVC for Windows
             if: startsWith(matrix.os, 'windows')
-            uses: ilammy/msvc-dev-cmd@v1
-            with:
-              arch: x64
+            run: |
+              choco install visualstudio2022community --package-parameters "--includeRecommended --includeOptional"
+              choco install visualstudio2022buildtools --package-parameters "--includeRecommended --includeOptional"
+              choco install visualstudio2022-workload-vctools
+            shell: powershell
           
           # Install required development tools: Ninja
           - name: Install required development tools - Ninja (Ubuntu)
