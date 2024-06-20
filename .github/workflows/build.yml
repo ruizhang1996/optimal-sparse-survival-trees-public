@@ -35,13 +35,13 @@ jobs:
           #   if: ${{ !startsWith(matrix.os, 'macos') }}
           #   run: |
           #       brew install cmake
-          - name: Setup MSVC for windows
-            if: startsWith(matrix.os, 'windows')
-            run: |
-              choco install visualstudio2019community --package-parameters "--includeRecommended --includeOptional"
-              choco install visualstudio2019buildtools --package-parameters "--includeRecommended --includeOptional"
-              choco install visualstudio2019-workload-vctools
-            shell: powershell
+          # - name: Setup MSVC for windows
+          #   if: startsWith(matrix.os, 'windows')
+          #   run: |
+          #     choco install visualstudio2019community --package-parameters "--includeRecommended --includeOptional"
+          #     choco install visualstudio2019buildtools --package-parameters "--includeRecommended --includeOptional"
+          #     choco install visualstudio2019-workload-vctools
+          #   shell: powershell
           
           # Install required development tools: Ninja
           - name: Install required development tools - Ninja (Ubuntu)
@@ -55,7 +55,7 @@ jobs:
           - name: Install required development tools - Ninja (Windows)
             if: startsWith(matrix.os, 'windows')
             run: |
-                choco install -y ninja 
+                choco install -y ninja --version=1.11.1
 
           # Install required development tools: pkg-config
           - name: Install required development tools - pkg-config (Ubuntu)
