@@ -13,13 +13,13 @@ The prediction in the leaf node is predicted survival function / cumulative harz
 
 ## Does OSST (implicitly) restrict the depth of the resulting tree? 
 
-No, OSST does not restrict the depth of the resulting tree unless you set the depth limit in configuration. Our sparsity constraint is from the regularization parameter (lambda) which is used to penalize the number of leaves. If lambda is set to a large value, e.g. lambda=1, then the generated tree will be a root node without any split and the loss at this point will be the number of samples with minority class over n, where n is the total sample size. (Here we suppose it's a binary classification problem and we are interested in accuracy). When lambda becomes smaller, the generated trees will have more leaves. But the number of leaves doesn't guarantee what depth a tree has since OSST generates trees of any shape.
+No, OSST does not restrict the depth of the resulting tree unless you set the depth limit in configuration. Our sparsity constraint is from the regularization parameter (lambda) which is used to penalize the number of leaves. If lambda is set to a large value, e.g. lambda=1, then the generated tree will be a root node without any split and it is simply a Kaplan-Meier Estimator. When lambda becomes smaller, the generated trees will have more leaves. But the number of leaves doesn't guarantee what depth a tree has since OSST generates trees of any shape.
 
 
 
 ## If the regularization parameter is set to zero, does the algorithm search for a decision tree of arbitrary size that has perfect accuracy? 
 
-If the regularization parameter (lambda) is set to 0, OSST tends to find a decision tree of arbitrary size that has the best possible accuracy. If the dataset doesn't have equivalent samples (that is samples with the same feature values but different labels), then the best possible accuracy is 1 (loss=0). Otherwise, the best possible accuracy will be 1-# of equivalent samples with minority class / n. For example, running monk1 using GOSDT with lambda=0 returns zero loss. Running compass/binned.csv (available in GOSDT GitHub repo) returns non-zero loss but it is equal to the number of equivalent samples with minority class over n. 
+If the regularization parameter (lambda) is set to 0, OSST tends to find a decision tree of arbitrary size that has the best possible accuracy. If the dataset doesn't have equivalent samples (that is samples with the same feature values but different labels), then the best possible accuracy is 1 (loss=0). Otherwise, the best possible loss will be non-zero.
 
 
 

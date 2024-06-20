@@ -275,3 +275,11 @@ pip3 install dist/osst-0.1.0-cp310-cp310-macosx_12_0_x86_64.whl
 pip3 install attrs packaging editables pandas sklearn sortedcontainers gmpy2 matplotlib
 python3 osst/example.py
 ```
+
+If you are using Python 3.12, please install `gmpy2==2.2.0a1`.
+
+```bash
+pip3 install dist/osst-0.1.0-cp310-cp310-macosx_12_0_x86_64.whl
+pip3 install attrs packaging editables pandas sklearn sortedcontainers gmpy2==2.2.0a1 matplotlib
+python3 osst/example.py
+```

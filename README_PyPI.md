@@ -12,6 +12,7 @@ pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy
 pip3 install osst
 ```
 
+You need to install `gmpy2==2.0.a1` if You are using Python 3.12
 # Configuration
 
 The configuration is a JSON object and has the following structure and default values:

@@ -27,14 +27,11 @@ jobs:
                 python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
           
           # Install required development tools: CMake
-          # - name: Install required development tools - cmake (ubuntu)
-          #   if: startsWith(matrix.os, 'ubuntu')
-          #   run: |
-          #       sudo apt install -y cmake
-          # - name: Install required development tools - cmake (macos)
-          #   if: ${{ !startsWith(matrix.os, 'macos') }}
-          #   run: |
-          #       brew install cmake
+          - name: Install required development tools - cmake (macos)
+            if: ${{ !startsWith(matrix.os, 'windows') }}
+            run: |
+                winget install Kitware.CMake
+                
           - name: Setup MSVC
             if: startsWith(matrix.os, 'windows')
             uses: ilammy/msvc-dev-cmd@v1

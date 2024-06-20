@@ -19,6 +19,11 @@ You need **Python 3.9 or later** to use the module `osst` in your project.
 pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2 matplotlib scikit-survival
 pip3 install osst
 ```
+
+You need to install `gmpy2==2.0.a1` if You are using Python 3.12
+
+You can find a list of available wheels on [PyPI](https://pypi.org/project/osst/).  
+Please feel free to open an issue if you do not see your distribution offered.
 ---
 
 # Compilation
