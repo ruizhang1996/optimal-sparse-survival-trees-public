@@ -1,4 +1,4 @@
-name: OSST CI
+name: OSST ManyLinux CI
 
 on: [push, pull_request]
 
@@ -30,7 +30,6 @@ jobs:
           
           
           - name: Build the wheel with Docker
-            if: startsWith(matrix.config.name, 'CentOS')
             uses: addnab/docker-run-action@v3
             with:
                 image: quay.io/pypa/manylinux2014_x86_64
