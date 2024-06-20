@@ -96,7 +96,7 @@ jobs:
           # Setup MSVC for windows
           - name: Setup MSVC for Windows
             if: startsWith(matrix.os, 'windows')
-            uses: ilammy/msvc-dev-cmd@v1
+            uses: ilammy/msvc-dev-cmd@v1.4.1
           
           # Build the project
           - name: Build the project
