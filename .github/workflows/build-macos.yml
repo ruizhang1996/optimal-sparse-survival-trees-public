@@ -123,14 +123,6 @@ jobs:
                 name: Distributed-Wheels-${{matrix.os}}-3.${{matrix.python-minor-version}}
                 path: dist/*.whl
 
-          # Publish to PyPI
-          - name: Publish wheels to PyPI
-            if: github.ref_name == 'main'
-            uses: pypa/gh-action-pypi-publish@release/v1
-            with:
-              user: __token__ 
-              password: ${{ secrets.PYPI_TOKEN }}
-
     publish:
         needs: build
         if: github.ref_name == 'publish'
