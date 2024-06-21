@@ -1,11 +1,17 @@
 name: OSST ManyLinux CI
 
-on: [pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 
 
 jobs:
-    build:
+    build-and-upload:
         runs-on: ${{ matrix.os }}
         strategy:
           fail-fast: false
@@ -66,4 +72,18 @@ jobs:
                 pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2==2.2.0a1 matplotlib
                 python3 -c "import os; import subprocess; exit(subprocess.run(['pip3', 'install', 'dist/{}'.format(os.listdir('dist')[0])]).returncode)"
                 python3 osst/example.py
-          
+          # Upload wheels
+          - name: Upload the wheel file
+              if: github.ref == 'refs/remotes/origin/main'
+              uses: actions/upload-artifact@v2
+              with:
+                  name: Distributed-Wheels
+                  path: dist/*.whl
+
+          # Publish to PyPI
+          - name: Publish wheels to PyPI
+            if: github.ref == 'refs/remotes/origin/main'
+            uses: pypa/gh-action-pypi-publish@release/v1
+            with:
+              user: __token__ 
+              password: ${{ secrets.PYPI_TOKEN }}
