@@ -74,7 +74,7 @@ jobs:
                 python3 osst/example.py
           # Upload wheels
           - name: Upload the wheel file
-              if: github.ref == 'refs/remotes/origin/main'
+              if: github.ref_name == 'main'
               uses: actions/upload-artifact@v2
               with:
                   name: Distributed-Wheels
@@ -82,7 +82,7 @@ jobs:
 
           # Publish to PyPI
           - name: Publish wheels to PyPI
-            if: github.ref == 'refs/remotes/origin/main'
+            if: github.ref_name == 'main'
             uses: pypa/gh-action-pypi-publish@release/v1
             with:
               user: __token__ 
