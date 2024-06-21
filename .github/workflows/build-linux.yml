@@ -101,7 +101,7 @@ jobs:
             run: |
                 python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"   
           # Build wheels with Docker
-          - name: Build the wheel with Docker
+          - name: Build the wheel and source file with Docker
             uses: addnab/docker-run-action@v3
             with:
                 image: quay.io/pypa/manylinux2014_x86_64
@@ -122,6 +122,7 @@ jobs:
                     vcpkg install gmp
                     cd /source
                     python3.${{ matrix.python-minor-version }} build.py
+                    python3.${{ matrix.python-minor-version }} setup.py sdist
             
           # Run the sample experiment
           - name: Install the OSST Python module and run the sample experiment (Python 3.9 - 3.11)
@@ -150,11 +151,6 @@ jobs:
           - name: Install Twine
             run: |
                 pip3 install twine
-          # Prepare source file
-          - name: Prepare source file 
-            if: ${{matrix.python-minor-version}} == 9
-            run: |
-                python3 setup.py sdist
           
           # Publish to PyPI
           - name: Publish wheels to PyPI
