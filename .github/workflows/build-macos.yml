@@ -117,10 +117,10 @@ jobs:
 
           # Upload wheels
           - name: Upload the wheel file
-            if: github.ref_name == 'main'
+            if: github.ref_name == 'publish'
             uses: actions/upload-artifact@v2
             with:
-                name: Distributed-Wheels-${{matrix.os}}-3.${{matrix.python-minor-version}}
+                name: Macos-Wheel-${{matrix.os}}-3.${{matrix.python-minor-version}}
                 path: dist/*.whl
 
     publish:
@@ -150,7 +150,7 @@ jobs:
           - name: Download artifacts
             uses: actions/download-artifact@v2
             with:
-                name: Distributed-Wheels-${{matrix.os}}-3.${{matrix.python-minor-version}}  
+                name: Macos-Wheel-${{matrix.os}}-3.${{matrix.python-minor-version}}  
                 path: dist/
 
           - name: Install Twine
