@@ -3,11 +3,11 @@ name: OSST MacOS CI
 on:
   push:
     branches:
-      - master
+      - main
       - publish
   pull_request:
     branches:
-      - master
+      - main
       - publish
 
 
