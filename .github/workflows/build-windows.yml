@@ -1,0 +1,133 @@
+name: OSST Windows CI
+
+on:
+  push:
+    branches:
+      - master
+      - publish
+  pull_request:
+    branches:
+      - master
+      - publish
+
+jobs:
+    build:
+        runs-on: ${{ matrix.os }}
+        strategy:
+          fail-fast: false
+          matrix:
+            os: [windows-latest]
+            python-minor-version: [9, 10, 11, 12]
+
+        steps:
+          # Checkout the repo
+          - name: Checkout the repo
+            uses: actions/checkout@v3
+          # Install Python 3.9+
+          - name: Install required development tools - Python 3.${{ matrix.python-minor-version }}
+            uses: actions/setup-python@v4
+            with:
+                python-version: '3.${{ matrix.python-minor-version }}'
+          - name: Verify the Python version
+            run: |
+                python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
+          
+          # Install required development tools: Ninja
+          - name: Install required development tools - Ninja (Windows)
+            if: startsWith(matrix.os, 'windows')
+            run: |
+                choco install -y ninja 
+
+          # Install required development tools: pkg-config
+          - name: Install required development tools - pkg-config (Windows)
+            if: startsWith(matrix.os, 'windows')
+            run: |
+                choco install -y pkgconfiglite
+          
+          # Install required development tools: scikit-build
+          - name: Install required development tools - scikit-build
+            run: |
+                pip3 install --upgrade scikit-build
+
+
+          # Install required development tools: Wheel Fixer
+          - name: Install required development tools - Wheel Fixer (Windows)
+            if: startsWith(matrix.os, 'windows')
+            run: |
+                pip3 install --upgrade delvewheel
+          
+          # Install required 3rd-party libraries
+          - name: Install required 3rd-party libraries (Windows)
+            if: startsWith(matrix.os, 'windows')
+            run: |
+                vcpkg install tbb:x64-windows
+                vcpkg install gmp:x64-windows
+          
+          # Build the project
+          - name: Build the project
+            if: startsWith(matrix.os, 'windows')
+            run: |
+                python3 build.py
+          
+          # Run the sample experiment
+          - name: Install the OSST Python module and run the sample experiment (Python 3.9 - 3.11)
+            if: matrix.python-minor-version != 12
+            run: |
+                python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
+                pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2 matplotlib
+                python3 -c "import os; import subprocess; exit(subprocess.run(['pip3', 'install', 'dist/{}'.format(os.listdir('dist')[0])]).returncode)"
+                python3 osst/example.py
+          - name: Install the OSST Python module and run the sample experiment (Python 3.12)
+            if: matrix.python-minor-version == 12
+            run: |
+                python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
+                pip3 install attrs packaging editables pandas scikit-learn sortedcontainers gmpy2==2.2.0a1 matplotlib
+                python3 -c "import os; import subprocess; exit(subprocess.run(['pip3', 'install', 'dist/{}'.format(os.listdir('dist')[0])]).returncode)"
+                python3 osst/example.py
+
+          # Upload wheels
+          - name: Upload the wheel file
+            if: github.ref_name == 'publish'
+            uses: actions/upload-artifact@v2
+            with:
+                name: Windows-Wheel-${{matrix.os}}-3.${{matrix.python-minor-version}}
+                path: dist/*.whl
+    publish:
+        needs: build
+        if: github.ref_name == 'publish'
+        runs-on: ${{ matrix.os }}
+        strategy:
+          fail-fast: false
+          matrix:
+            os: [windows-latest]
+            python-minor-version: [9, 10, 11, 12]
+
+        steps:
+          # Checkout the repo
+          - name: Checkout the repo
+            uses: actions/checkout@v3
+          # Install Python 3.9+
+          - name: Install required development tools - Python 3.${{ matrix.python-minor-version }}
+            uses: actions/setup-python@v4
+            with:
+                python-version: '3.${{ matrix.python-minor-version }}'
+          - name: Verify the Python version
+            run: |
+                python3 -c "import sys; exit(not (sys.version_info.major == 3 and sys.version_info.minor == ${{ matrix.python-minor-version }}))"
+          
+          # Download wheels
+          - name: Download artifacts
+            uses: actions/download-artifact@v2
+            with:
+                name: Windows-Wheel-${{matrix.os}}-3.${{matrix.python-minor-version}}  
+                path: dist/
+                
+          - name: Install Twine
+            run: |
+                pip3 install twine
+          # Publish to PyPI
+          - name: Publish wheels to PyPI
+            env:
+              TWINE_USERNAME: __token__  
+              TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }} 
+            run: twine upload --skip-existing dist/*
