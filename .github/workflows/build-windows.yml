@@ -3,11 +3,11 @@ name: OSST Windows CI
 on:
   push:
     branches:
-      - master
+      - main
       - publish
   pull_request:
     branches:
-      - master
+      - main
       - publish
 
 jobs:
