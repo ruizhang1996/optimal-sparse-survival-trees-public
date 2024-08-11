@@ -1,0 +1,35 @@
+Dimensions of the correlation matrix: (428, 428)
+Correlation between A_LOG_1.0S_FO_IQR and A_LOG_1.0S_FO_Mean: 0.9472574553577717
+Correlation between A_LOG_1.0S_FO_IQR and A_LOG_1.0S_FO_MAD: 0.9936202031210531
+          Age       KPS  ...  Event       Time
+0    0.533333  1.000000  ...      1   4.734247
+1    0.633333  0.666667  ...      1  18.345205
+2    0.716667  0.666667  ...      1  10.586301
+3    0.000000  0.666667  ...      1  20.712329
+4    0.250000  1.000000  ...      1  10.356164
+..        ...       ...  ...    ...        ...
+114  0.800000  0.333333  ...      1   4.832877
+115  0.933333  0.666667  ...      1   5.030137
+116  0.666667  0.666667  ...      0   9.271233
+117  0.433333  0.666667  ...      0   7.726027
+118  0.516667  0.666667  ...      0   7.791781
+
+[119 rows x 10 columns]
+osst reported successful execution
+training completed. 1752.656 seconds.
+bounds: [0.136159..0.136159] (0.000000) IBS loss = 0.106159, iterations=1538950
+Model finished execution with Index(['Age', 'KPS', 'A_LOG_1.0S_FO_10Percentile',
+       'A_LOG_1.0S_FO_90Percentile', 'A_LOG_1.0S_FO_Energy',
+       'A_LOG_1.0S_FO_Entropy', 'A_LOG_1.0S_FO_IQR', 'A_LOG_1.0S_FO_Kurtosis'],
+      dtype='object')
+# of leaves: 3
+osst reported successful execution
+training completed. 0.000 seconds.
+bounds: [0.013462..0.013462] (0.000000) IBS loss = 0.003462, iterations=0
+Model finished execution with Index(['Age', 'KPS', 'A_LOG_1.0S_FO_10Percentile',
+       'A_LOG_1.0S_FO_90Percentile', 'A_LOG_1.0S_FO_Energy',
+       'A_LOG_1.0S_FO_Entropy', 'A_LOG_1.0S_FO_IQR', 'A_LOG_1.0S_FO_Kurtosis',
+       'A_LOG_1.0S_FO_Maximum', 'A_LOG_1.0S_FO_Mean', 'A_LOG_1.0S_FO_MAD',
+       'A_LOG_1.0S_FO_Median'],
+      dtype='object')
+# of leaves: 1
