@@ -67,7 +67,7 @@ class BaseEstimator:
         survival_prob = np.cumprod(1.0 - ratio)
         cumu_harzard_prob = np.cumprod(ratio)
         # take care before time before first time threshold 
-        self.unique_times = np.r_[-np.infty, time_threshold]
+        self.unique_times = np.r_[-np.inf, time_threshold]
         self.survival_prob = np.r_[1.0, survival_prob]
         self.cumu_harzard_prob = np.r_[0.0, cumu_harzard_prob]
 

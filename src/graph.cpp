@@ -194,8 +194,10 @@ void Graph::clear(void) {
     this -> edges.clear();
     this -> translations.clear();
     this -> children.clear();
-    this -> vertices.clear();
+    // this -> vertices.clear();
     this -> bounds.clear();
+    this -> ibs.clear();
+    this -> lb.clear();
     return;
 }
 

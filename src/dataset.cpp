@@ -28,6 +28,13 @@ void Dataset::clear(void) {
     this -> targets.clear();
     this -> rows.clear();
     this -> feature_rows.clear();
+    this -> target_values.clear();
+    this -> targets_mapping.clear();
+    this -> inverse_prob_censoring_weights.clear();
+    // delete &censoring;
+    // this -> censoring.
+    this -> summary_calls = 0;
+    this -> compute_ibs_calls = 0;
 }
 
 void Dataset::construct_bitmasks(std::istream & data_source) {
